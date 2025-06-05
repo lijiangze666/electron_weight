@@ -1,6 +1,7 @@
 // src/modules/login/LoginPage.tsx
 import React, { useState } from "react";
-import { Button, Input, Form, Typography, Radio } from "antd";
+import { Button, Input, Form, Radio } from "antd";
+import Typography from "antd/es/typography";
 
 export default function LoginPage() {
   const [selectedRoute, setSelectedRoute] = useState(1);
@@ -29,7 +30,7 @@ export default function LoginPage() {
             欢迎使用
           </Typography.Title>
           <Typography.Title level={1} style={{ color: "#fff" }}>
-            开讯智慧磅
+            智慧磅
           </Typography.Title>
           <Typography.Paragraph>
             核心功能为连接地磅、支持视频拍照、智能管理进销存业务，
@@ -39,7 +40,7 @@ export default function LoginPage() {
         </div>
         <div>
           <img
-            src="https://readdy.ai/api/search-image?query=A%20modern%2C%20minimalist%20logo%20for%20a%20tech%20company%20with%20blue%2C%20green%20and%20orange%20geometric%20shapes%20forming%20a%20stylized%20letter%20K%2C%20clean%20design%20on%20white%20background%2C%20professional%20corporate%20branding&width=100&height=100&seq=logo123&orientation=squarish"
+            src=""
             alt="logo"
             style={{
               width: 64,
@@ -49,7 +50,6 @@ export default function LoginPage() {
             }}
           />
           <div style={{ marginTop: 8 }}>
-            <div>http://www.fykxkj.com [阜阳开讯科技有限公司]</div>
             <div>您身边的过磅管理专家</div>
           </div>
         </div>
