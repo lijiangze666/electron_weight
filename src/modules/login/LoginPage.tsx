@@ -2,17 +2,28 @@
 import React, { useState } from "react";
 import { Button, Input, Form, Radio } from "antd";
 import Typography from "antd/es/typography";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [selectedRoute, setSelectedRoute] = useState(1);
+  const navigate = useNavigate();
 
   const handleFinish = (values: any) => {
     // 登录逻辑
-    alert(`登录：${values.username}`);
+    console.log(`登录：${values.username}`);
+    // 登录成功后跳转到Home页面
+    navigate('/home');
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ 
+      display: "flex", 
+      height: "100vh",
+      width: "1000px",
+      margin: "0 auto",
+      overflow: "hidden",
+      boxShadow: "0 0 10px rgba(0,0,0,0.1)"
+    }}>
       {/* 左侧介绍区 */}
       <div
         style={{
