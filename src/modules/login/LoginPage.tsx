@@ -4,6 +4,9 @@ import { Button, Input, Form, Radio } from "antd";
 import Typography from "antd/es/typography";
 import { useNavigate } from "react-router-dom";
 
+// 添加 electron 的 ipcRenderer
+const { ipcRenderer } = window.require("electron");
+
 export default function LoginPage() {
   const [selectedRoute, setSelectedRoute] = useState(1);
   const navigate = useNavigate();
@@ -11,19 +14,21 @@ export default function LoginPage() {
   const handleFinish = (values: any) => {
     // 登录逻辑
     console.log(`登录：${values.username}`);
-    // 登录成功后跳转到Home页面
-    navigate('/home');
+    // 发送登录成功消息给主进程
+    ipcRenderer.send("login-success");
   };
 
   return (
-    <div style={{ 
-      display: "flex", 
-      height: "100vh",
-      width: "1000px",
-      margin: "0 auto",
-      overflow: "hidden",
-      boxShadow: "0 0 10px rgba(0,0,0,0.1)"
-    }}>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        width: "1000px",
+        margin: "0 auto",
+        overflow: "hidden",
+        boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+      }}
+    >
       {/* 左侧介绍区 */}
       <div
         style={{

@@ -8,6 +8,7 @@ function createLoginWindow() {
     width: 1000,
     height: 600,
     resizable: false,
+    maximizable: false,
     center: true,
     autoHideMenuBar: true,
     frame: true,
@@ -20,24 +21,17 @@ function createLoginWindow() {
   Menu.setApplicationMenu(null);
 
   if (process.env.VITE_DEV_SERVER_URL) {
-    win.loadURL(process.env.VITE_DEV_SERVER_URL);
+    win.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/login");
     win.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
+    win.loadFile(path.join(__dirname, "../dist/index.html"), {
+      hash: "/login",
+    });
   }
 
-  // 监听导航事件
-  win.webContents.on('will-navigate', (event, url) => {
-    if (url.includes('/home')) {
-      event.preventDefault();
-      createMainWindow();
-      win.close();
-    }
-  });
-
-  // 监听 hash 变化
-  win.webContents.on('hash-change', (event, url) => {
-    if (url.includes('/home')) {
+  // 监听登录事件
+  win.webContents.on("ipc-message", (event, channel, ...args) => {
+    if (channel === "login-success") {
       createMainWindow();
       win.close();
     }
@@ -55,6 +49,15 @@ function createMainWindow() {
     if (mainWindow.isMinimized()) {
       mainWindow.restore();
     }
+    // 重新加载 home 路由
+    if (process.env.VITE_DEV_SERVER_URL) {
+      mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/home");
+    } else {
+      mainWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
+        hash: "/home",
+      });
+    }
+    mainWindow.maximize(); // 恢复时也最大化
     mainWindow.focus();
     return;
   }
@@ -78,17 +81,30 @@ function createMainWindow() {
 
   Menu.setApplicationMenu(null);
 
+  // 加载 home 路由
   if (process.env.VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL + '/#/home');
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/home");
   } else {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
-      hash: '/home'
+      hash: "/home",
     });
   }
 
-  mainWindow.once('ready-to-show', () => {
+  mainWindow.once("ready-to-show", () => {
     mainWindow.show();
-    mainWindow.maximize();
+    mainWindow.maximize(); // 显示时立即最大化
+  });
+
+  mainWindow.on("maximize", () => {
+    console.log("Window maximized");
+  });
+
+  mainWindow.on("unmaximize", () => {
+    console.log("Window unmaximized");
+  });
+
+  mainWindow.on("resize", () => {
+    console.log("Window resized");
   });
 
   mainWindow.on("closed", () => {

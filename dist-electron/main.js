@@ -7,6 +7,7 @@ function createLoginWindow() {
     width: 1e3,
     height: 600,
     resizable: false,
+    maximizable: false,
     center: true,
     autoHideMenuBar: true,
     frame: true,
@@ -17,20 +18,15 @@ function createLoginWindow() {
   });
   Menu.setApplicationMenu(null);
   if (process.env.VITE_DEV_SERVER_URL) {
-    win.loadURL(process.env.VITE_DEV_SERVER_URL);
+    win.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/login");
     win.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
+    win.loadFile(path.join(__dirname, "../dist/index.html"), {
+      hash: "/login"
+    });
   }
-  win.webContents.on("will-navigate", (event, url) => {
-    if (url.includes("/home")) {
-      event.preventDefault();
-      createMainWindow();
-      win.close();
-    }
-  });
-  win.webContents.on("hash-change", (event, url) => {
-    if (url.includes("/home")) {
+  win.webContents.on("ipc-message", (event, channel, ...args) => {
+    if (channel === "login-success") {
       createMainWindow();
       win.close();
     }
@@ -46,6 +42,14 @@ function createMainWindow() {
     if (mainWindow.isMinimized()) {
       mainWindow.restore();
     }
+    if (process.env.VITE_DEV_SERVER_URL) {
+      mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/home");
+    } else {
+      mainWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
+        hash: "/home"
+      });
+    }
+    mainWindow.maximize();
     mainWindow.focus();
     return;
   }
@@ -76,6 +80,15 @@ function createMainWindow() {
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
     mainWindow.maximize();
+  });
+  mainWindow.on("maximize", () => {
+    console.log("Window maximized");
+  });
+  mainWindow.on("unmaximize", () => {
+    console.log("Window unmaximized");
+  });
+  mainWindow.on("resize", () => {
+    console.log("Window resized");
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
