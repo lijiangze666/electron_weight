@@ -46,9 +46,9 @@ export default function LoginPage() {
             欢迎使用
           </Typography.Title>
           <Typography.Title level={1} style={{ color: "#fff" }}>
-            智慧磅
+            一磅通
           </Typography.Title>
-          <Typography.Paragraph>
+          <Typography.Paragraph style={{ color: "#fff" }}>
             核心功能为连接地磅、支持视频拍照、智能管理进销存业务，
             <br />
             帮助企业实现智能化管理新模式
@@ -110,15 +110,6 @@ export default function LoginPage() {
               <Button type="primary" htmlType="submit" block>
                 登录
               </Button>
-            </Form.Item>
-            <Form.Item>
-              <Radio.Group
-                value={selectedRoute}
-                onChange={(e) => setSelectedRoute(e.target.value)}
-              >
-                <Radio value={1}>线路1</Radio>
-                <Radio value={2}>线路2</Radio>
-              </Radio.Group>
             </Form.Item>
           </Form>
           <div

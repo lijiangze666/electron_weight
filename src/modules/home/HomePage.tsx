@@ -1,5 +1,6 @@
 import React from "react";
 import { Tabs, Tab, Box, Typography, Paper } from "@mui/material";
+import PurchaseQuickWeight from "./purchase-quick-weight";
 
 export default function HomePage() {
   const [tab, setTab] = React.useState(0);
@@ -20,10 +21,16 @@ export default function HomePage() {
           sx={{ 
             borderBottom: 1, 
             borderColor: "divider",
-            backgroundColor: "#fff"
+            backgroundColor: "#fff",
+            '& .MuiTab-root': {
+              fontSize: '1.2rem',
+              fontWeight: 500,
+              minHeight: '48px'
+            }
           }}
         >
           <Tab label="首页" />
+          <Tab label="采购快捷过磅" />
           <Tab label="其他功能" />
         </Tabs>
       </Paper>
@@ -39,7 +46,8 @@ export default function HomePage() {
             {/* 这里添加首页的具体内容 */}
           </Paper>
         )}
-        {tab === 1 && (
+        {tab === 1 && <PurchaseQuickWeight />}
+        {tab === 2 && (
           <Paper sx={{ p: 3, height: "100%" }}>
             <Typography variant="h5" gutterBottom>其他功能内容</Typography>
             {/* 这里添加其他功能的具体内容 */}
