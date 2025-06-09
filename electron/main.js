@@ -1,120 +1,171 @@
+// 从 electron 包中导入必要的模块：app(应用实例)、BrowserWindow(窗口类)、Menu(菜单类)
 const { app, BrowserWindow, Menu } = require("electron");
+// 导入 Node.js 的 path 模块，用于处理文件路径
 const path = require("path");
 
+// 声明一个全局变量，用于存储主窗口的引用，初始值为 null
 let mainWindow = null;
 
+/**
+ * 创建登录窗口的函数
+ * 这是应用启动时显示的第一个窗口
+ */
 function createLoginWindow() {
+  // 创建一个新的浏览器窗口实例，并传入配置对象
   const win = new BrowserWindow({
-    width: 1000,
-    height: 600,
-    resizable: false,
-    maximizable: false,
-    center: true,
-    autoHideMenuBar: true,
-    frame: true,
+    width: 1000, // 设置窗口的初始宽度为 1000 像素
+    height: 600, // 设置窗口的初始高度为 600 像素
+    resizable: false, // 禁止用户调整窗口大小
+    maximizable: false, // 禁止窗口最大化按钮
+    center: true, // 窗口在屏幕中居中显示
+    autoHideMenuBar: true, // 自动隐藏窗口的菜单栏
+    frame: true, // 显示窗口的边框和标题栏
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      // 网页功能的配置项
+      nodeIntegration: true, // 允许在渲染进程中使用 Node.js API
+      contextIsolation: false, // 关闭上下文隔离，允许直接访问 Node.js API
     },
   });
 
+  // 移除应用程序的菜单栏
   Menu.setApplicationMenu(null);
 
+  // 判断当前是否在开发环境中运行
   if (process.env.VITE_DEV_SERVER_URL) {
+    // 在开发环境中，加载开发服务器的 URL，并添加登录页面的路由
     win.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/login");
+    // 打开开发者工具，方便调试
     win.webContents.openDevTools();
   } else {
+    // 在生产环境中，加载打包后的 HTML 文件
     win.loadFile(path.join(__dirname, "../dist/index.html"), {
-      hash: "/login",
+      hash: "/login", // 使用 hash 路由加载登录页面
     });
   }
 
-  // 监听登录事件
+  // 监听来自渲染进程的 IPC 消息
   win.webContents.on("ipc-message", (event, channel, ...args) => {
+    // 当收到登录成功的消息时
     if (channel === "login-success") {
+      // 创建主窗口
       createMainWindow();
+      // 关闭登录窗口
       win.close();
     }
   });
 
+  // 监听窗口的关闭事件
   win.on("closed", () => {
+    // 如果没有主窗口存在，则退出整个应用
     if (!mainWindow) {
       app.quit();
     }
   });
 }
 
+/**
+ * 创建主窗口的函数
+ * 这是用户登录后显示的主应用窗口
+ */
 function createMainWindow() {
+  // 检查主窗口是否已经存在
   if (mainWindow) {
+    // 如果窗口处于最小化状态
     if (mainWindow.isMinimized()) {
+      // 恢复窗口到正常大小
       mainWindow.restore();
     }
-    // 重新加载 home 路由
+    // 根据环境重新加载 home 路由
     if (process.env.VITE_DEV_SERVER_URL) {
+      // 在开发环境中，加载开发服务器的 URL
       mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/home");
     } else {
+      // 在生产环境中，加载打包后的 HTML 文件
       mainWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
-        hash: "/home",
+        hash: "/home", // 使用 hash 路由加载首页
       });
     }
-    mainWindow.maximize(); // 恢复时也最大化
+    // 最大化窗口
+    mainWindow.maximize();
+    // 让窗口获得焦点
     mainWindow.focus();
+    // 结束函数执行
     return;
   }
 
+  // 创建新的主窗口实例，并传入配置对象
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
-    resizable: true,
-    maximizable: true,
-    fullscreenable: true,
-    autoHideMenuBar: true,
-    frame: true,
-    show: false,
+    width: 1200, // 设置窗口的初始宽度为 1200 像素
+    height: 800, // 设置窗口的初始高度为 800 像素
+    minWidth: 800, // 设置窗口的最小宽度为 800 像素
+    minHeight: 600, // 设置窗口的最小高度为 600 像素
+    resizable: true, // 允许用户调整窗口大小
+    maximizable: true, // 允许窗口最大化
+    fullscreenable: true, // 允许窗口全屏显示
+    autoHideMenuBar: true, // 自动隐藏窗口的菜单栏
+    frame: true, // 显示窗口的边框和标题栏
+    show: false, // 初始时不显示窗口，等待内容加载完成
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      // 网页功能的配置项
+      nodeIntegration: true, // 允许在渲染进程中使用 Node.js API
+      contextIsolation: false, // 关闭上下文隔离，允许直接访问 Node.js API
     },
   });
 
+  // 移除应用程序的菜单栏
   Menu.setApplicationMenu(null);
 
-  // 加载 home 路由
+  // 根据环境加载主窗口内容
   if (process.env.VITE_DEV_SERVER_URL) {
+    // 在开发环境中，加载开发服务器的 URL
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/home");
   } else {
+    // 在生产环境中，加载打包后的 HTML 文件
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
-      hash: "/home",
+      hash: "/home", // 使用 hash 路由加载首页
     });
   }
 
+  // 监听窗口的 ready-to-show 事件，这个事件在窗口内容加载完成后触发
   mainWindow.once("ready-to-show", () => {
+    // 显示窗口
     mainWindow.show();
-    mainWindow.maximize(); // 显示时立即最大化
+    // 最大化窗口
+    mainWindow.maximize();
   });
 
+  // 监听窗口的最大化事件
   mainWindow.on("maximize", () => {
+    // 在控制台输出日志
     console.log("Window maximized");
   });
 
+  // 监听窗口的取消最大化事件
   mainWindow.on("unmaximize", () => {
+    // 在控制台输出日志
     console.log("Window unmaximized");
   });
 
+  // 监听窗口的大小改变事件
   mainWindow.on("resize", () => {
+    // 在控制台输出日志
     console.log("Window resized");
   });
 
+  // 监听窗口的关闭事件
   mainWindow.on("closed", () => {
+    // 清除主窗口的引用
     mainWindow = null;
+    // 退出整个应用
     app.quit();
   });
 }
 
+// 当 Electron 完成初始化时，调用 createLoginWindow 函数创建登录窗口
 app.whenReady().then(createLoginWindow);
 
+// 监听所有窗口关闭的事件
 app.on("window-all-closed", () => {
+  // 当所有窗口都关闭时，退出应用
   app.quit();
 });
