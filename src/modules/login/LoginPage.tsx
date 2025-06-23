@@ -55,16 +55,6 @@ export default function LoginPage() {
           </Typography.Paragraph>
         </div>
         <div>
-          <img
-            src=""
-            alt="logo"
-            style={{
-              width: 64,
-              borderRadius: 8,
-              background: "#fff",
-              padding: 8,
-            }}
-          />
           <div style={{ marginTop: 8 }}>
             <div>您身边的过磅管理专家</div>
           </div>
