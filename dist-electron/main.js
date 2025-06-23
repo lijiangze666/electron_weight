@@ -1,6 +1,24 @@
 "use strict";
 const { app, BrowserWindow, Menu } = require("electron");
 const path = require("path");
+const SerialPort = require("serialport");
+let serialPortInstance = null;
+const { ipcMain } = require("electron");
+ipcMain.on("open-serialport", (event) => {
+  if (serialPortInstance && serialPortInstance.isOpen) return;
+  serialPortInstance = new SerialPort("COM3", { baudRate: 9600 }, (err) => {
+    if (err) {
+      event.sender.send("serialport-error", err.message);
+      return;
+    }
+  });
+  serialPortInstance.on("data", (data) => {
+    event.sender.send("serialport-data", data.toString());
+  });
+  serialPortInstance.on("error", (err) => {
+    event.sender.send("serialport-error", err.message);
+  });
+});
 let mainWindow = null;
 function createLoginWindow() {
   const win = new BrowserWindow({

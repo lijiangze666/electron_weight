@@ -2,6 +2,32 @@
 const { app, BrowserWindow, Menu } = require("electron");
 // 导入 Node.js 的 path 模块，用于处理文件路径
 const path = require("path");
+// 引入 serialport 包
+const SerialPort = require("serialport");
+let serialPortInstance = null; // 用于保存串口实例
+
+// 监听渲染进程请求打开串口
+const { ipcMain } = require("electron");
+ipcMain.on("open-serialport", (event) => {
+  // 如果串口已打开，避免重复打开
+  if (serialPortInstance && serialPortInstance.isOpen) return;
+  // 创建串口实例
+  serialPortInstance = new SerialPort("COM3", { baudRate: 9600 }, (err) => {
+    if (err) {
+      event.sender.send("serialport-error", err.message);
+      return;
+    }
+  });
+  // 监听串口数据
+  serialPortInstance.on("data", (data) => {
+    // 将数据转为字符串后发送到渲染进程
+    event.sender.send("serialport-data", data.toString());
+  });
+  // 监听串口错误
+  serialPortInstance.on("error", (err) => {
+    event.sender.send("serialport-error", err.message);
+  });
+});
 
 // 声明一个全局变量，用于存储主窗口的引用，初始值为 null
 let mainWindow = null;
