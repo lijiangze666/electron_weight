@@ -3,7 +3,7 @@ const { app, BrowserWindow, Menu } = require("electron");
 // 导入 Node.js 的 path 模块，用于处理文件路径
 const path = require("path");
 // 引入 serialport 包
-const SerialPort = require("serialport");
+const { SerialPort } = require('serialport');
 let serialPortInstance = null; // 用于保存串口实例
 
 // 监听渲染进程请求打开串口
@@ -12,7 +12,7 @@ ipcMain.on("open-serialport", (event) => {
   // 如果串口已打开，避免重复打开
   if (serialPortInstance && serialPortInstance.isOpen) return;
   // 创建串口实例
-  serialPortInstance = new SerialPort("COM3", { baudRate: 9600 }, (err) => {
+  serialPortInstance = new SerialPort({ path: "COM3", baudRate: 9600, autoOpen: false }, (err) => {
     if (err) {
       event.sender.send("serialport-error", err.message);
       return;
@@ -20,8 +20,8 @@ ipcMain.on("open-serialport", (event) => {
   });
   // 监听串口数据
   serialPortInstance.on("data", (data) => {
-    // 将数据转为字符串后发送到渲染进程
-    event.sender.send("serialport-data", data.toString());
+    console.log('串口收到数据:', data.toString()); // 控制台打印
+    mainWindow.webContents.send("serialport-data", data.toString());
   });
   // 监听串口错误
   serialPortInstance.on("error", (err) => {
@@ -158,6 +158,8 @@ function createMainWindow() {
     mainWindow.show();
     // 最大化窗口
     mainWindow.maximize();
+    // 打开调试工具
+    mainWindow.webContents.openDevTools();
   });
 
   // 监听窗口的最大化事件
