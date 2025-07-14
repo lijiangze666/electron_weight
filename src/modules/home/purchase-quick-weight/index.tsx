@@ -14,18 +14,18 @@ export default function SerialDataDisplay() {
     const handler = (_event: any, data: any) => {
       // 去除空格等非十六进制字符
       const hexStr = data.replace(/[^0-9A-Fa-f]/g, "");
-
-      // 解析十六进制字符串为整数
       const weight = parseInt(hexStr, 16);
 
-      // 如果解析失败（NaN），直接显示原始内容
+      let display = "";
       if (isNaN(weight)) {
-        setSerialData(data);
+        display = data;
       } else {
         // 假设单位是克，换算成千克显示，保留1位小数
-        const realWeight = (weight / 1000).toFixed(1);
-        setSerialData(`${realWeight} kg`);
+        display = `${(weight / 1000).toFixed(1)} kg`;
       }
+
+      // 只有数据变化时才更新
+      setSerialData(prev => (prev === display ? prev : display));
     };
 
     ipcRenderer.on("serialport-data", handler);
