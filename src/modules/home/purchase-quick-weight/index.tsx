@@ -10,6 +10,15 @@ export default function SerialDataDisplay() {
 
   useEffect(() => {
     ipcRenderer.send("open-serialport");
+
+    // 监听主进程发来的串口数据
+    const handler = (_event: any, data: any) => setSerialData(data);
+    ipcRenderer.on("serialport-data", handler);
+
+    // 卸载时清理监听
+    return () => {
+      ipcRenderer.removeListener("serialport-data", handler);
+    };
   }, []);
 
   return (
