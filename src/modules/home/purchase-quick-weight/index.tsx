@@ -14,7 +14,9 @@ export default function SerialDataDisplay() {
     const handler = (_event: any, data: any) => {
       const hexStr = data.replace(/[^0-9A-Fa-f]/g, "");
       const weight = parseInt(hexStr, 16);
-      setSerialData(isNaN(weight) ? data : `${weight} kg`);
+      // 假设1位=0.1kg
+      const realWeight = isNaN(weight) ? data : (weight / 10).toFixed(1);
+      setSerialData(isNaN(weight) ? data : `${realWeight} kg`);
     };
     ipcRenderer.on("serialport-data", handler);
 
