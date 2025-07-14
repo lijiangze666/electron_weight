@@ -27,6 +27,14 @@ ipcMain.on("open-serialport", (event) => {
   serialPortInstance.on("error", (err) => {
     event.sender.send("serialport-error", err.message);
   });
+  // 打开串口
+  serialPortInstance.open((err) => {
+    if (err) {
+      event.sender.send("serialport-error", err.message);
+      return;
+    }
+    console.log("串口已打开");
+  });
 });
 
 // 声明一个全局变量，用于存储主窗口的引用，初始值为 null

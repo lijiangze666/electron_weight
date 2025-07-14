@@ -19,6 +19,13 @@ ipcMain.on("open-serialport", (event) => {
   serialPortInstance.on("error", (err) => {
     event.sender.send("serialport-error", err.message);
   });
+  serialPortInstance.open((err) => {
+    if (err) {
+      event.sender.send("serialport-error", err.message);
+      return;
+    }
+    console.log("串口已打开");
+  });
 });
 let mainWindow = null;
 function createLoginWindow() {
