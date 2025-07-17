@@ -40,9 +40,29 @@ export default function SerialDataDisplay() {
   }, []);
 
   return (
-    <div>
-      <h2>串口数据：</h2>
-      <div style={{ fontFamily: "monospace", fontSize: 20 }}>{serialData}</div>
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 24,
+          right: 24,
+          background: "#000",
+          color: "#ff2d2d",
+          fontFamily: "'DS-Digital', 'Consolas', 'monospace'",
+          fontSize: 48,
+          padding: "16px 32px",
+          borderRadius: 12,
+          boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+          letterSpacing: 2,
+          border: "2px solid #222",
+          zIndex: 1000,
+          minWidth: 180,
+          textAlign: "center",
+          userSelect: "none"
+        }}
+      >
+        {serialData}
+      </div>
     </div>
   );
 }
