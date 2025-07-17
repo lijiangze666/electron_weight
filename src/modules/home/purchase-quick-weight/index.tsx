@@ -40,7 +40,8 @@ export default function PurchaseQuickWeight() {
     const handler = (_event: any, data: string) => {
       const match = data.match(/[+-]?\d+/);
       if (match) {
-        const weight = Math.floor(parseInt(match[0], 10) / 1000);
+        // 直接展示原始数字，不做除法
+        const weight = parseInt(match[0], 10);
         if (lastWeightRef.current === weight) {
           stableCountRef.current += 1;
         } else {
