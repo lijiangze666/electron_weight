@@ -7,7 +7,7 @@ const { ipcRenderer } = window.require
 
   export default function SerialDataDisplay() {
     const [serialData, setSerialData] = useState("");
-    const [ setLastWeight] = useState<number | null>(null);
+    const [lastWeight, setLastWeight] = useState<number | null>(null);
   
     useEffect(() => {
       ipcRenderer.send("open-serialport");
