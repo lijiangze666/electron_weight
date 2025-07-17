@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import Button from '@mui/material/Button';
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -147,8 +148,8 @@ export default function PurchaseQuickWeight() {
             background: "#000",
             color: "#ff2d2d",
             fontFamily: "'Share Tech Mono', 'Orbitron', 'Consolas', 'monospace'",
-            fontSize: 48,
-            padding: "16px 32px",
+            fontSize: 72, // 字体更大
+            padding: "8px 32px", // 上下内边距减小
             borderRadius: 12,
             textAlign: "center",
             marginBottom: 24,
@@ -161,8 +162,24 @@ export default function PurchaseQuickWeight() {
           {serialData}
         </div>
         <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
-          <button onClick={handleMaozhong} disabled={!isStable} style={{ fontSize: 20, padding: "8px 24px" }}>毛重</button>
-          <button onClick={handlePizhong} disabled={!isStable || maozhong === null} style={{ fontSize: 20, padding: "8px 24px" }}>皮重</button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleMaozhong}
+            disabled={!isStable}
+            sx={{ fontSize: 20, px: 4, py: 1.5 }}
+          >
+            毛重
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handlePizhong}
+            disabled={!isStable || maozhong === null}
+            sx={{ fontSize: 20, px: 4, py: 1.5 }}
+          >
+            皮重
+          </Button>
         </div>
         <div style={{ marginBottom: 16 }}>
           <input placeholder="供应商名称" value={supplier} onChange={e => setSupplier(e.target.value)} style={{ width: "100%", fontSize: 18, padding: 8 }} />
