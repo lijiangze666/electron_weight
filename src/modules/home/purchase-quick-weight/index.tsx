@@ -27,7 +27,7 @@ export default function SerialDataDisplay() {
 
         // 只有连续3次相同才更新显示
         if (stableCountRef.current === 3) {
-          setSerialData(`${weight} kg`);
+          setSerialData(`${weight}`); // 只显示数字
         }
       }
     };
@@ -48,7 +48,7 @@ export default function SerialDataDisplay() {
           right: 24,
           background: "#000",
           color: "#ff2d2d",
-          fontFamily: "'DS-Digital', 'Consolas', 'monospace'",
+          fontFamily: "'Share Tech Mono', 'Orbitron', 'Consolas', 'monospace'",
           fontSize: 48,
           padding: "16px 32px",
           borderRadius: 12,
