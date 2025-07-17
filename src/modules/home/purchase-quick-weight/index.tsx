@@ -38,22 +38,17 @@ export default function PurchaseQuickWeight() {
     ipcRenderer.send("open-serialport");
 
     const handler = (_event: any, data: string) => {
+      // 匹配 +1234 或 -1234 或 1234
       const match = data.match(/[+-]?\d+/);
       if (match) {
-        // 直接展示原始数字，不做除法
-        const weight = parseInt(match[0], 10);
-        if (lastWeightRef.current === weight) {
-          stableCountRef.current += 1;
-        } else {
-          stableCountRef.current = 1;
-          lastWeightRef.current = weight;
-        }
-        if (stableCountRef.current >= 3) {
-          setSerialData(`${weight}`);
-          setIsStable(true);
-        } else {
-          setIsStable(false);
-        }
+        let raw = parseInt(match[0], 10);
+
+        // 假设原始数据就是kg，直接展示
+        let weight = raw;
+        setSerialData(`${weight}`);
+        setIsStable(true);
+      } else {
+        setIsStable(false);
       }
     };
     ipcRenderer.on("serialport-data", handler);
@@ -169,9 +164,9 @@ export default function PurchaseQuickWeight() {
                   <TableCell>{r.id}</TableCell>
                   <TableCell>{r.time}</TableCell>
                   <TableCell>{r.item}</TableCell>
-                  <TableCell>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
-                  <TableCell>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
-                  <TableCell>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
+                  <TableCell>{r.maozhong !== null ? r.maozhong + ' kg' : ""}</TableCell>
+                  <TableCell>{r.pizhong !== null ? r.pizhong + ' kg' : ""}</TableCell>
+                  <TableCell>{r.jingzhong !== null ? r.jingzhong + ' kg' : ""}</TableCell>
                   <TableCell>{r.unit}</TableCell>
                   <TableCell>{r.amount}</TableCell>
                 </TableRow>
