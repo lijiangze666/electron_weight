@@ -38,13 +38,10 @@ export default function PurchaseQuickWeight() {
     ipcRenderer.send("open-serialport");
 
     const handler = (_event: any, data: string) => {
-      // 匹配 +1234 或 -1234 或 1234
       const match = data.match(/[+-]?\d+/);
       if (match) {
-        let raw = parseInt(match[0], 10);
-
-        // 假设原始数据就是kg，直接展示
-        let weight = raw;
+        // 原始数据是克，除以1000并取整
+        const weight = Math.floor(parseInt(match[0], 10) / 1000);
         setSerialData(`${weight}`);
         setIsStable(true);
       } else {
@@ -164,9 +161,9 @@ export default function PurchaseQuickWeight() {
                   <TableCell>{r.id}</TableCell>
                   <TableCell>{r.time}</TableCell>
                   <TableCell>{r.item}</TableCell>
-                  <TableCell>{r.maozhong !== null ? r.maozhong + ' kg' : ""}</TableCell>
-                  <TableCell>{r.pizhong !== null ? r.pizhong + ' kg' : ""}</TableCell>
-                  <TableCell>{r.jingzhong !== null ? r.jingzhong + ' kg' : ""}</TableCell>
+                  <TableCell>{r.maozhong !== null ? r.maozhong  : ""}</TableCell>
+                  <TableCell>{r.pizhong !== null ? r.pizhong  : ""}</TableCell>
+                  <TableCell>{r.jingzhong !== null ? r.jingzhong  : ""}</TableCell>
                   <TableCell>{r.unit}</TableCell>
                   <TableCell>{r.amount}</TableCell>
                 </TableRow>
