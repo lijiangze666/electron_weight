@@ -15,10 +15,10 @@ const { ipcRenderer } = window.require
       let buffer = "";
   
       const handler = (_event: any, data: string) => {
-        // 匹配 +12345 或 -12345 这种格式
         const match = data.match(/[+-]?\d+/);
         if (match) {
-          setSerialData(`${parseInt(match[0], 10)} kg`);
+          const weight = Math.floor(parseInt(match[0], 10) / 1000);
+          setSerialData(`${weight} kg`);
         }
       };
   
