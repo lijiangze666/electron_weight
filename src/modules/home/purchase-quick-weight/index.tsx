@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
-import Button from '@mui/material/Button';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import Snackbar from '@mui/material/Snackbar';
-import Alert from '@mui/material/Alert';
+import Button from "@mui/material/Button";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Paper from "@mui/material/Paper";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -33,6 +33,8 @@ export default function PurchaseQuickWeight() {
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  // 新增：选中行id
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     ipcRenderer.send("open-serialport");
@@ -59,12 +61,19 @@ export default function PurchaseQuickWeight() {
   // 获取当前时间字符串
   const getTime = () => {
     const d = new Date();
-    return d.getFullYear() + "-" +
-      String(d.getMonth() + 1).padStart(2, "0") + "-" +
-      String(d.getDate()).padStart(2, "0") + " " +
-      String(d.getHours()).padStart(2, "0") + ":" +
-      String(d.getMinutes()).padStart(2, "0") + ":" +
-      String(d.getSeconds()).padStart(2, "0");
+    return (
+      d.getFullYear() +
+      "-" +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(d.getDate()).padStart(2, "0") +
+      " " +
+      String(d.getHours()).padStart(2, "0") +
+      ":" +
+      String(d.getMinutes()).padStart(2, "0") +
+      ":" +
+      String(d.getSeconds()).padStart(2, "0")
+    );
   };
 
   // 新增一条空数据
@@ -84,16 +93,19 @@ export default function PurchaseQuickWeight() {
     ]);
   };
 
-  // 删除选中（最后一条）
+  // 删除选中行
   const handleDelete = () => {
-    setRecords(records.slice(0, -1));
+    if (selectedId) {
+      setRecords(records.filter((r) => r.id !== selectedId));
+      setSelectedId(null);
+    }
   };
 
   // 点击毛重，填充到最新一条数据的毛重字段
   const handleMaozhong = () => {
     if (isStable && serialData && records.length > 0) {
       const weight = Number(serialData);
-      setRecords(prev => {
+      setRecords((prev) => {
         const newRecords = [...prev];
         const last = newRecords[newRecords.length - 1];
         if (last) {
@@ -108,7 +120,7 @@ export default function PurchaseQuickWeight() {
   const handlePizhong = () => {
     if (isStable && serialData && records.length > 0) {
       const weight = Number(serialData);
-      setRecords(prev => {
+      setRecords((prev) => {
         const newRecords = [...prev];
         const last = newRecords[newRecords.length - 1];
         if (last && last.maozhong !== null) {
@@ -129,22 +141,40 @@ export default function PurchaseQuickWeight() {
   return (
     <div style={{ display: "flex", height: "100vh" }}>
       {/* 错误提示 */}
-      <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert onClose={() => setOpen(false)} severity="error" sx={{ width: '100%' }}>
+      <Snackbar
+        open={open}
+        autoHideDuration={3000}
+        onClose={() => setOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setOpen(false)}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
           {error}
         </Alert>
       </Snackbar>
       {/* 左侧：记录表格 */}
       <div style={{ flex: 1, padding: 24, overflow: "auto" }}>
         <h2>过磅记录</h2>
-        <div style={{ marginBottom: 16, display: 'flex', gap: 12 }}>
-          <Button variant="contained" color="primary" onClick={handleAdd}>新增</Button>
-          <Button variant="outlined" color="error" onClick={handleDelete} disabled={records.length === 0}>删除</Button>
+        <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
+          <Button variant="contained" color="primary" onClick={handleAdd}>
+            新增
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={handleDelete}
+            disabled={!selectedId}
+          >
+            删除
+          </Button>
         </div>
         <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ background: '#f5f5f5' }}>
+              <TableRow sx={{ background: "#f5f5f5" }}>
                 <TableCell>单据号</TableCell>
                 <TableCell>时间</TableCell>
                 <TableCell>物品</TableCell>
@@ -156,14 +186,22 @@ export default function PurchaseQuickWeight() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {records.map(r => (
-                <TableRow key={r.id}>
+              {records.map((r) => (
+                <TableRow
+                  key={r.id}
+                  hover
+                  selected={selectedId === r.id}
+                  onClick={() => setSelectedId(r.id)}
+                  style={{ cursor: "pointer" }}
+                >
                   <TableCell>{r.id}</TableCell>
                   <TableCell>{r.time}</TableCell>
                   <TableCell>{r.item}</TableCell>
-                  <TableCell>{r.maozhong !== null ? r.maozhong  : ""}</TableCell>
-                  <TableCell>{r.pizhong !== null ? r.pizhong  : ""}</TableCell>
-                  <TableCell>{r.jingzhong !== null ? r.jingzhong  : ""}</TableCell>
+                  <TableCell>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
+                  <TableCell>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
+                  <TableCell>
+                    {r.jingzhong !== null ? r.jingzhong : ""}
+                  </TableCell>
                   <TableCell>{r.unit}</TableCell>
                   <TableCell>{r.amount}</TableCell>
                 </TableRow>
@@ -178,7 +216,8 @@ export default function PurchaseQuickWeight() {
           style={{
             background: "#000",
             color: "#ff2d2d",
-            fontFamily: "'Share Tech Mono', 'Orbitron', 'Consolas', 'monospace'",
+            fontFamily:
+              "'Share Tech Mono', 'Orbitron', 'Consolas', 'monospace'",
             fontSize: 72,
             padding: "8px 32px",
             borderRadius: 12,
@@ -191,7 +230,7 @@ export default function PurchaseQuickWeight() {
             userSelect: "none",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center"
+            justifyContent: "center",
           }}
         >
           {serialData || <span style={{ opacity: 0.3 }}>--</span>}
