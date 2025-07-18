@@ -73,6 +73,7 @@ function createLoginWindow() {
   Menu.setApplicationMenu(null);
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/login");
+    win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"), {
       hash: "/login"
@@ -149,6 +150,7 @@ function createMainWindow() {
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
     mainWindow.maximize();
+    mainWindow.webContents.openDevTools();
   });
   mainWindow.on("maximize", () => {
     console.log("Window maximized");

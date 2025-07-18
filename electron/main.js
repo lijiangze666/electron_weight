@@ -90,7 +90,7 @@ function createLoginWindow() {
     // 在开发环境中，加载开发服务器的 URL，并添加登录页面的路由
     win.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/login");
     // 打开开发者工具，方便调试
-    // win.webContents.openDevTools();
+    win.webContents.openDevTools();
   } else {
     // 在生产环境中，加载打包后的 HTML 文件
     win.loadFile(path.join(__dirname, "../dist/index.html"), {
@@ -188,7 +188,7 @@ function createMainWindow() {
     // 最大化窗口
     mainWindow.maximize();
     // 打开调试工具
-    // mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
   });
 
   // 监听窗口的最大化事件
