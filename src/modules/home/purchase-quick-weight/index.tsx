@@ -14,6 +14,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
+import TableFooter from "@mui/material/TableFooter";
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -161,8 +162,15 @@ export default function PurchaseQuickWeight() {
     }
   };
 
+  // 汇总计算
+  const totalJingzhong = records.reduce(
+    (sum, r) => sum + (r.jingzhong || 0),
+    0
+  );
+  const totalAmount = records.reduce((sum, r) => sum + (r.amount || 0), 0);
+
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* 错误提示 */}
       <Snackbar
         open={open}
@@ -228,10 +236,25 @@ export default function PurchaseQuickWeight() {
                   </TableCell>
                   <TableCell>{r.unit}</TableCell>
                   <TableCell>{r.price !== null ? r.price : ""}</TableCell>
-                  <TableCell>{r.amount}</TableCell>
+                  <TableCell>{r.amount ? r.amount.toFixed(1) : ""}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={5} align="right" sx={{ fontWeight: 700 }}>
+                  合计：
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>
+                  {totalJingzhong.toFixed(1)}
+                </TableCell>
+                <TableCell />
+                <TableCell />
+                <TableCell sx={{ fontWeight: 700 }}>
+                  {totalAmount.toFixed(1)}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
           </Table>
         </TableContainer>
       </div>
