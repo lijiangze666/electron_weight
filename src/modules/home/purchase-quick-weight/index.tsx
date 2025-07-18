@@ -215,7 +215,8 @@ export default function PurchaseQuickWeight() {
         <div
           style={{
             background: "#000",
-            color: "#ff2d2d",
+            color: isStable ? "#00e676" : "#ff2d2d", // 稳定时高亮绿色，否则红色
+            fontWeight: isStable ? 900 : 400, // 稳定时加粗
             fontFamily:
               "'Share Tech Mono', 'Orbitron', 'Consolas', 'monospace'",
             fontSize: 72,
@@ -231,9 +232,11 @@ export default function PurchaseQuickWeight() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            opacity: serialData ? 1 : 0.3, // 没有数据时半透明
+            transition: "color 0.3s, font-weight 0.3s", // 平滑过渡
           }}
         >
-          {serialData || <span style={{ opacity: 0.3 }}>--</span>}
+          {serialData || <span>--</span>}
         </div>
         <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
           <Button
