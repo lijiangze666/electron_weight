@@ -6,12 +6,15 @@ let serialPortInstance = null;
 const { ipcMain } = require("electron");
 ipcMain.on("open-serialport", (event) => {
   if (serialPortInstance && serialPortInstance.isOpen) return;
-  serialPortInstance = new SerialPort({ path: "COM3", baudRate: 9600, autoOpen: false }, (err) => {
-    if (err) {
-      event.sender.send("serialport-error", err.message);
-      return;
+  serialPortInstance = new SerialPort(
+    { path: "COM3", baudRate: 9600, autoOpen: false },
+    (err) => {
+      if (err) {
+        event.sender.send("serialport-error", err.message);
+        return;
+      }
     }
-  });
+  );
   serialPortInstance.on("data", (data) => {
     console.log("串口收到数据:", data.toString());
     mainWindow.webContents.send("serialport-data", data.toString());
@@ -55,7 +58,6 @@ function createLoginWindow() {
   Menu.setApplicationMenu(null);
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/login");
-    win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"), {
       hash: "/login"
@@ -132,7 +134,6 @@ function createMainWindow() {
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
     mainWindow.maximize();
-    mainWindow.webContents.openDevTools();
   });
   mainWindow.on("maximize", () => {
     console.log("Window maximized");
