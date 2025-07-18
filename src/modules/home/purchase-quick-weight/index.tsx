@@ -224,7 +224,7 @@ export default function PurchaseQuickWeight() {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          padding: 24,
+          padding: 10,
           overflow: "hidden",
         }}
       >
@@ -547,7 +547,7 @@ export default function PurchaseQuickWeight() {
       <div
         style={{
           width: 300,
-          padding: 24,
+          padding: 15,
           borderLeft: "1px solid #eee",
           boxSizing: "border-box",
           height: "100vh",
@@ -560,7 +560,7 @@ export default function PurchaseQuickWeight() {
             fontWeight: isStable ? 900 : 400, // 稳定时加粗
             fontFamily:
               "'Share Tech Mono', 'Orbitron', 'Consolas', 'monospace'",
-            fontSize: 72,
+            fontSize: 65,
             padding: "8px 32px",
             borderRadius: 12,
             textAlign: "center",
