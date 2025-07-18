@@ -15,6 +15,8 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
 import TableFooter from "@mui/material/TableFooter";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -45,6 +47,10 @@ export default function PurchaseQuickWeight() {
   // 单价输入弹窗相关状态
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [inputPrice, setInputPrice] = useState("");
+  // 归档数据和筛选状态
+  const [archivedRecords, setArchivedRecords] = useState<RecordItem[]>([]);
+  const [filterStart, setFilterStart] = useState<string>("");
+  const [filterEnd, setFilterEnd] = useState<string>("");
 
   useEffect(() => {
     ipcRenderer.send("open-serialport");
@@ -140,9 +146,10 @@ export default function PurchaseQuickWeight() {
     setPriceDialogOpen(false);
   };
 
-  // 点击皮重，自动计算金额
+  // 点击皮重，自动计算金额并归档
   const handlePizhong = () => {
     if (isStable && serialData && records.length > 0 && selectedId) {
+      let archivedRow: RecordItem | null = null;
       setRecords((prev) =>
         prev.map((row) => {
           if (row.id === selectedId && row.maozhong !== null) {
@@ -154,11 +161,19 @@ export default function PurchaseQuickWeight() {
             }
             const jingzhong = row.maozhong - pizhong;
             const amount = row.price ? jingzhong * row.price : 0;
+            archivedRow = { ...row, pizhong, jingzhong, amount };
             return { ...row, pizhong, jingzhong, amount };
           }
           return row;
         })
       );
+      setTimeout(() => {
+        if (archivedRow) {
+          setArchivedRecords((prevArch) => [...prevArch, archivedRow!]);
+          setRecords((prev) => prev.filter((row) => row.id !== selectedId));
+          setSelectedId(null);
+        }
+      }, 0);
     }
   };
 
@@ -168,6 +183,23 @@ export default function PurchaseQuickWeight() {
     0
   );
   const totalAmount = records.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+  // 归档表格筛选逻辑
+  const filteredArchived = archivedRecords.filter((r) => {
+    if (filterStart && dayjs(r.time).isBefore(dayjs(filterStart))) return false;
+    if (filterEnd && dayjs(r.time).isAfter(dayjs(filterEnd))) return false;
+    return true;
+  });
+
+  // 归档表格统计
+  const totalArchivedJingzhong = filteredArchived.reduce(
+    (sum, r) => sum + (r.jingzhong || 0),
+    0
+  );
+  const totalArchivedAmount = filteredArchived.reduce(
+    (sum, r) => sum + (r.amount || 0),
+    0
+  );
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -186,80 +218,341 @@ export default function PurchaseQuickWeight() {
           {error}
         </Alert>
       </Snackbar>
-      {/* 左侧：记录表格 */}
-      <div style={{ flex: 1, padding: 24, overflow: "auto" }}>
-        <h2>过磅记录</h2>
-        <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
-          <Button variant="contained" color="primary" onClick={handleAdd}>
-            新增
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={handleDelete}
-            disabled={!selectedId}
+      {/* 左侧：上下两个表格 */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          padding: 24,
+          overflow: "hidden",
+        }}
+      >
+        {/* 上方：过磅记录表格 */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            marginBottom: 24,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <h2>过磅记录</h2>
+          <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
+            <Button variant="contained" color="primary" onClick={handleAdd}>
+              新增
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleDelete}
+              disabled={!selectedId}
+            >
+              删除
+            </Button>
+          </div>
+          <TableContainer
+            component={Paper}
+            sx={{
+              boxShadow: 2,
+              flex: 1,
+              minHeight: 0,
+              maxHeight: 300,
+              overflowY: "auto",
+            }}
           >
-            删除
-          </Button>
-        </div>
-        <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ background: "#f5f5f5" }}>
-                <TableCell>单据号</TableCell>
-                <TableCell>时间</TableCell>
-                <TableCell>物品</TableCell>
-                <TableCell>毛重(kg)</TableCell>
-                <TableCell>皮重(kg)</TableCell>
-                <TableCell>净重(kg)</TableCell>
-                <TableCell>单位</TableCell>
-                <TableCell>单价(元/kg)</TableCell>
-                <TableCell>金额</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {records.map((r) => (
-                <TableRow
-                  key={r.id}
-                  hover
-                  selected={selectedId === r.id}
-                  onClick={() => setSelectedId(r.id)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <TableCell>{r.id}</TableCell>
-                  <TableCell>{r.time}</TableCell>
-                  <TableCell>{r.item}</TableCell>
-                  <TableCell>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
-                  <TableCell>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
-                  <TableCell>
-                    {r.jingzhong !== null ? r.jingzhong : ""}
+            <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
+              <TableHead>
+                <TableRow sx={{ background: "#f5f5f5" }}>
+                  <TableCell sx={{ minWidth: 100, textAlign: "center" }}>
+                    单据号
                   </TableCell>
-                  <TableCell>{r.unit}</TableCell>
-                  <TableCell>{r.price !== null ? r.price : ""}</TableCell>
-                  <TableCell>{r.amount ? r.amount.toFixed(1) : ""}</TableCell>
+                  <TableCell
+                    sx={{
+                      minWidth: 150,
+                      maxWidth: 180,
+                      whiteSpace: "nowrap",
+                      textAlign: "center",
+                    }}
+                  >
+                    时间
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 80, textAlign: "center" }}>
+                    物品
+                  </TableCell>
+                  <TableCell sx={{ width: 90, textAlign: "center" }}>
+                    毛重(kg)
+                  </TableCell>
+                  <TableCell sx={{ width: 90, textAlign: "center" }}>
+                    皮重(kg)
+                  </TableCell>
+                  <TableCell sx={{ width: 90, textAlign: "center" }}>
+                    净重(kg)
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: 60,
+                      maxWidth: 80,
+                      whiteSpace: "nowrap",
+                      textAlign: "center",
+                    }}
+                  >
+                    单位
+                  </TableCell>
+                  <TableCell sx={{ width: 90, textAlign: "center" }}>
+                    单价(元/kg)
+                  </TableCell>
+                  <TableCell sx={{ width: 100, textAlign: "center" }}>
+                    金额
+                  </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={5} align="right" sx={{ fontWeight: 700 }}>
-                  合计：
-                </TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>
-                  {totalJingzhong.toFixed(1)}
-                </TableCell>
-                <TableCell />
-                <TableCell />
-                <TableCell sx={{ fontWeight: 700 }}>
-                  {totalAmount.toFixed(1)}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {records.map((r) => (
+                  <TableRow
+                    key={r.id}
+                    hover
+                    selected={selectedId === r.id}
+                    onClick={() => setSelectedId(r.id)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <TableCell sx={{ minWidth: 100, textAlign: "center" }}>
+                      {r.id}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        minWidth: 150,
+                        maxWidth: 180,
+                        whiteSpace: "nowrap",
+                        textAlign: "center",
+                      }}
+                    >
+                      {r.time}
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 80, textAlign: "center" }}>
+                      {r.item}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center" }}>
+                      {r.maozhong !== null ? r.maozhong : ""}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center" }}>
+                      {r.pizhong !== null ? r.pizhong : ""}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center" }}>
+                      {r.jingzhong !== null ? r.jingzhong : ""}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 60,
+                        maxWidth: 80,
+                        whiteSpace: "nowrap",
+                        textAlign: "center",
+                      }}
+                    >
+                      {r.unit}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center" }}>
+                      {r.price !== null ? r.price : ""}
+                    </TableCell>
+                    <TableCell sx={{ width: 100, textAlign: "center" }}>
+                      {r.amount ? r.amount.toFixed(1) : ""}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow
+                  sx={{
+                    position: "sticky",
+                    bottom: 0,
+                    background: "#fff",
+                    zIndex: 2,
+                  }}
+                >
+                  <TableCell colSpan={5} align="right" sx={{ fontWeight: 700 }}>
+                    合计：
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    {totalJingzhong.toFixed(1)}
+                  </TableCell>
+                  <TableCell />
+                  <TableCell />
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    {totalAmount.toFixed(1)}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </TableContainer>
+        </div>
+        {/* 下方：归档/统计/查询表格 */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <h3>归档数据</h3>
+          <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+            <TextField
+              label="开始时间"
+              type="datetime-local"
+              size="small"
+              value={filterStart}
+              onChange={(e) => setFilterStart(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="结束时间"
+              type="datetime-local"
+              size="small"
+              value={filterEnd}
+              onChange={(e) => setFilterEnd(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </div>
+          <TableContainer
+            component={Paper}
+            sx={{
+              boxShadow: 1,
+              flex: 1,
+              minHeight: 0,
+              maxHeight: 300,
+              overflowY: "auto",
+            }}
+          >
+            <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
+              <TableHead>
+                <TableRow sx={{ background: "#f5f5f5" }}>
+                  <TableCell sx={{ minWidth: 100, textAlign: "center" }}>
+                    单据号
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      minWidth: 150,
+                      maxWidth: 180,
+                      whiteSpace: "nowrap",
+                      textAlign: "center",
+                    }}
+                  >
+                    时间
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 80, textAlign: "center" }}>
+                    物品
+                  </TableCell>
+                  <TableCell sx={{ width: 90, textAlign: "center" }}>
+                    毛重(kg)
+                  </TableCell>
+                  <TableCell sx={{ width: 90, textAlign: "center" }}>
+                    皮重(kg)
+                  </TableCell>
+                  <TableCell sx={{ width: 90, textAlign: "center" }}>
+                    净重(kg)
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: 60,
+                      maxWidth: 80,
+                      whiteSpace: "nowrap",
+                      textAlign: "center",
+                    }}
+                  >
+                    单位
+                  </TableCell>
+                  <TableCell sx={{ width: 90, textAlign: "center" }}>
+                    单价(元/kg)
+                  </TableCell>
+                  <TableCell sx={{ width: 100, textAlign: "center" }}>
+                    金额
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredArchived.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell sx={{ minWidth: 100, textAlign: "center" }}>
+                      {r.id}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        minWidth: 150,
+                        maxWidth: 180,
+                        whiteSpace: "nowrap",
+                        textAlign: "center",
+                      }}
+                    >
+                      {r.time}
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 80, textAlign: "center" }}>
+                      {r.item}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center" }}>
+                      {r.maozhong !== null ? r.maozhong : ""}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center" }}>
+                      {r.pizhong !== null ? r.pizhong : ""}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center" }}>
+                      {r.jingzhong !== null ? r.jingzhong : ""}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 60,
+                        maxWidth: 80,
+                        whiteSpace: "nowrap",
+                        textAlign: "center",
+                      }}
+                    >
+                      {r.unit}
+                    </TableCell>
+                    <TableCell sx={{ width: 90, textAlign: "center" }}>
+                      {r.price !== null ? r.price : ""}
+                    </TableCell>
+                    <TableCell sx={{ width: 100, textAlign: "center" }}>
+                      {r.amount ? r.amount.toFixed(1) : ""}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow
+                  sx={{
+                    position: "sticky",
+                    bottom: 0,
+                    background: "#fff",
+                    zIndex: 2,
+                  }}
+                >
+                  <TableCell colSpan={5} align="right" sx={{ fontWeight: 700 }}>
+                    合计：
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    {totalArchivedJingzhong.toFixed(1)}
+                  </TableCell>
+                  <TableCell />
+                  <TableCell />
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    {totalArchivedAmount.toFixed(1)}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </TableContainer>
+        </div>
       </div>
       {/* 右侧：数字显示和操作区 */}
-      <div style={{ width: 400, padding: 24, borderLeft: "1px solid #eee" }}>
+      <div
+        style={{
+          width: 300,
+          padding: 24,
+          borderLeft: "1px solid #eee",
+          boxSizing: "border-box",
+          height: "100vh",
+        }}
+      >
         <div
           style={{
             background: "#000",
