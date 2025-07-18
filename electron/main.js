@@ -6,9 +6,27 @@ const path = require("path");
 const { SerialPort } = require("serialport");
 let serialPortInstance = null; // 用于保存串口实例
 
+// 串口模拟功能
+let mockSerialInterval = null;
+function startMockSerial() {
+  if (mockSerialInterval) return;
+  mockSerialInterval = setInterval(() => {
+    // 生成0~10000的随机整数
+    const mockValue = Math.floor(Math.random() * 10000001);
+    BrowserWindow.getAllWindows().forEach((win) => {
+      win.webContents.send("serialport-data", `${mockValue}\r\n`);
+    });
+  }, 1000);
+}
+
 // 监听渲染进程请求打开串口
 const { ipcMain } = require("electron");
 ipcMain.on("open-serialport", (event) => {
+  // 如果启用模拟串口，直接返回
+  if (process.env.MOCK_SERIAL === "1") {
+    startMockSerial();
+    return;
+  }
   // 如果串口已打开，避免重复打开
   if (serialPortInstance && serialPortInstance.isOpen) return;
   // 创建串口实例

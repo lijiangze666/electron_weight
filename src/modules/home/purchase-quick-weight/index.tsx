@@ -9,6 +9,11 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import TextField from "@mui/material/TextField";
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -22,6 +27,7 @@ interface RecordItem {
   pizhong: number | null;
   jingzhong: number | null;
   unit: string;
+  price: number | null; // 单价
   amount: number;
 }
 
@@ -35,6 +41,9 @@ export default function PurchaseQuickWeight() {
   const [open, setOpen] = useState(false);
   // 新增：选中行id
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 单价输入弹窗相关状态
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [inputPrice, setInputPrice] = useState("");
 
   useEffect(() => {
     ipcRenderer.send("open-serialport");
@@ -87,7 +96,8 @@ export default function PurchaseQuickWeight() {
         maozhong: null,
         pizhong: null,
         jingzhong: null,
-        unit: "斤",
+        unit: "千克", // 单位改为千克
+        price: null, // 新增单价
         amount: 0,
       },
     ]);
@@ -101,40 +111,53 @@ export default function PurchaseQuickWeight() {
     }
   };
 
-  // 点击毛重，填充到最新一条数据的毛重字段
+  // 点击毛重，弹窗输入单价
   const handleMaozhong = () => {
-    if (isStable && serialData && records.length > 0) {
-      const weight = Number(serialData);
-      setRecords((prev) => {
-        const newRecords = [...prev];
-        const last = newRecords[newRecords.length - 1];
-        if (last) {
-          last.maozhong = weight;
-        }
-        return newRecords;
-      });
+    if (isStable && serialData && records.length > 0 && selectedId) {
+      setPriceDialogOpen(true);
+      setInputPrice("");
     }
   };
 
-  // 点击皮重，填充到最新一条数据的皮重字段并计算净重和金额
-  const handlePizhong = () => {
-    if (isStable && serialData && records.length > 0) {
-      const weight = Number(serialData);
-      setRecords((prev) => {
-        const newRecords = [...prev];
-        const last = newRecords[newRecords.length - 1];
-        if (last && last.maozhong !== null) {
-          if (weight >= last.maozhong) {
-            setError("皮重不能大于等于毛重！");
-            setOpen(true);
-            return prev; // 不更新
-          }
-          last.pizhong = weight;
-          last.jingzhong = last.maozhong - last.pizhong;
-          last.amount = last.jingzhong * 1; // 金额可自定义
+  // 确认输入单价
+  const handlePriceConfirm = () => {
+    const priceValue = parseFloat(inputPrice);
+    if (isNaN(priceValue) || priceValue <= 0) {
+      setError("请输入有效的单价");
+      setOpen(true);
+      return;
+    }
+    // 更新选中行的毛重和单价
+    setRecords((prev) =>
+      prev.map((row) => {
+        if (row.id === selectedId) {
+          return { ...row, maozhong: Number(serialData), price: priceValue };
         }
-        return newRecords;
-      });
+        return row;
+      })
+    );
+    setPriceDialogOpen(false);
+  };
+
+  // 点击皮重，自动计算金额
+  const handlePizhong = () => {
+    if (isStable && serialData && records.length > 0 && selectedId) {
+      setRecords((prev) =>
+        prev.map((row) => {
+          if (row.id === selectedId && row.maozhong !== null) {
+            const pizhong = Number(serialData);
+            if (pizhong >= row.maozhong) {
+              setError("皮重不能大于等于毛重！");
+              setOpen(true);
+              return row;
+            }
+            const jingzhong = row.maozhong - pizhong;
+            const amount = row.price ? jingzhong * row.price : 0;
+            return { ...row, pizhong, jingzhong, amount };
+          }
+          return row;
+        })
+      );
     }
   };
 
@@ -178,10 +201,11 @@ export default function PurchaseQuickWeight() {
                 <TableCell>单据号</TableCell>
                 <TableCell>时间</TableCell>
                 <TableCell>物品</TableCell>
-                <TableCell>毛重</TableCell>
-                <TableCell>皮重</TableCell>
-                <TableCell>净重</TableCell>
+                <TableCell>毛重(kg)</TableCell>
+                <TableCell>皮重(kg)</TableCell>
+                <TableCell>净重(kg)</TableCell>
                 <TableCell>单位</TableCell>
+                <TableCell>单价(元/kg)</TableCell>
                 <TableCell>金额</TableCell>
               </TableRow>
             </TableHead>
@@ -203,6 +227,7 @@ export default function PurchaseQuickWeight() {
                     {r.jingzhong !== null ? r.jingzhong : ""}
                   </TableCell>
                   <TableCell>{r.unit}</TableCell>
+                  <TableCell>{r.price !== null ? r.price : ""}</TableCell>
                   <TableCell>{r.amount}</TableCell>
                 </TableRow>
               ))}
@@ -257,6 +282,28 @@ export default function PurchaseQuickWeight() {
           </Button>
         </div>
       </div>
+      {/* 单价输入弹窗 */}
+      <Dialog open={priceDialogOpen} onClose={() => setPriceDialogOpen(false)}>
+        <DialogTitle>请输入单价</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="单价 (元/千克)"
+            type="number"
+            fullWidth
+            value={inputPrice}
+            onChange={(e) => setInputPrice(e.target.value)}
+            inputProps={{ min: 0, step: 0.01 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPriceDialogOpen(false)}>取消</Button>
+          <Button onClick={handlePriceConfirm} variant="contained">
+            确定
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

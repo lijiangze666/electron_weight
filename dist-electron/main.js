@@ -3,8 +3,23 @@ const { app, BrowserWindow, Menu } = require("electron");
 const path = require("path");
 const { SerialPort } = require("serialport");
 let serialPortInstance = null;
+let mockSerialInterval = null;
+function startMockSerial() {
+  if (mockSerialInterval) return;
+  mockSerialInterval = setInterval(() => {
+    const mockValue = Math.floor(Math.random() * 10000001);
+    BrowserWindow.getAllWindows().forEach((win) => {
+      win.webContents.send("serialport-data", `${mockValue}\r
+`);
+    });
+  }, 1e3);
+}
 const { ipcMain } = require("electron");
 ipcMain.on("open-serialport", (event) => {
+  if (process.env.MOCK_SERIAL === "1") {
+    startMockSerial();
+    return;
+  }
   if (serialPortInstance && serialPortInstance.isOpen) return;
   serialPortInstance = new SerialPort(
     { path: "COM3", baudRate: 9600, autoOpen: false },
