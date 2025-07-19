@@ -16,6 +16,7 @@ import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
 import TableFooter from "@mui/material/TableFooter";
 import dayjs from "dayjs";
+import Checkbox from "@mui/material/Checkbox";
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -48,8 +49,10 @@ export default function PurchaseQuickWeight() {
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
-  // 新增：选中行id
+  // 上方表格单选id
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 下方表格单选id
+  const [selectedArchivedId, setSelectedArchivedId] = useState<string | null>(null);
   // 单价输入弹窗相关状态
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [inputPrice, setInputPrice] = useState("");
@@ -61,6 +64,8 @@ export default function PurchaseQuickWeight() {
   const [editingCell, setEditingCell] = useState<EditState | null>(null);
   // 归档数据编辑状态
   const [editingArchivedCell, setEditingArchivedCell] = useState<EditState | null>(null);
+  // 归档表格多选选中行id
+  const [selectedArchivedIds, setSelectedArchivedIds] = useState<string[]>([]);
 
   useEffect(() => {
     ipcRenderer.send("open-serialport");
@@ -120,6 +125,17 @@ export default function PurchaseQuickWeight() {
     ]);
   };
 
+  // 保存选中行到归档
+  const handleSaveSelected = () => {
+    if (!selectedId) return;
+    const toArchive = records.find(r => r.id === selectedId);
+    if (toArchive) {
+      setArchivedRecords(prev => [...prev, toArchive]);
+      setRecords(prev => prev.filter(r => r.id !== selectedId));
+      setSelectedId(null);
+    }
+  };
+
   // 删除选中行
   const handleDelete = () => {
     if (selectedId) {
@@ -130,36 +146,25 @@ export default function PurchaseQuickWeight() {
 
   // 点击毛重，弹窗输入单价
   const handleMaozhong = () => {
-    if (isStable && serialData && records.length > 0 && selectedId) {
+    if (
+      isStable &&
+      serialData &&
+      records.length > 0 &&
+      selectedId
+    ) {
       setPriceDialogOpen(true);
       setInputPrice("");
     }
   };
 
-  // 确认输入单价
-  const handlePriceConfirm = () => {
-    const priceValue = parseFloat(inputPrice);
-    if (isNaN(priceValue) || priceValue <= 0) {
-      setError("请输入有效的单价");
-      setOpen(true);
-      return;
-    }
-    // 更新选中行的毛重和单价
-    setRecords((prev) =>
-      prev.map((row) => {
-        if (row.id === selectedId) {
-          return { ...row, maozhong: Number(serialData), price: priceValue };
-        }
-        return row;
-      })
-    );
-    setPriceDialogOpen(false);
-  };
-
-  // 点击皮重，自动计算金额并归档
+  // 取消 handlePizhong 的自动归档逻辑
   const handlePizhong = () => {
-    if (isStable && serialData && records.length > 0 && selectedId) {
-      let archivedRow: RecordItem | null = null;
+    if (
+      isStable &&
+      serialData &&
+      records.length > 0 &&
+      selectedId
+    ) {
       setRecords((prev) =>
         prev.map((row) => {
           if (row.id === selectedId && row.maozhong !== null) {
@@ -171,20 +176,31 @@ export default function PurchaseQuickWeight() {
             }
             const jingzhong = row.maozhong - pizhong;
             const amount = row.price ? jingzhong * row.price : 0;
-            archivedRow = { ...row, pizhong, jingzhong, amount };
             return { ...row, pizhong, jingzhong, amount };
           }
           return row;
         })
       );
-      setTimeout(() => {
-        if (archivedRow) {
-          setArchivedRecords((prevArch) => [...prevArch, archivedRow!]);
-          setRecords((prev) => prev.filter((row) => row.id !== selectedId));
-          setSelectedId(null);
-        }
-      }, 0);
     }
+  };
+
+  // 确认输入单价
+  const handlePriceConfirm = () => {
+    const priceValue = parseFloat(inputPrice);
+    if (isNaN(priceValue) || priceValue <= 0) {
+      setError("请输入有效的单价");
+      setOpen(true);
+      return;
+    }
+    setRecords((prev) =>
+      prev.map((row) => {
+        if (row.id === selectedId) {
+          return { ...row, maozhong: Number(serialData), price: priceValue };
+        }
+        return row;
+      })
+    );
+    setPriceDialogOpen(false);
   };
 
   // 汇总计算
@@ -449,6 +465,17 @@ export default function PurchaseQuickWeight() {
     );
   });
 
+  // 反审核：将选中归档数据移回上方表格
+  const handleUnAudit = () => {
+    if (!selectedArchivedId) return;
+    const toRestore = archivedRecords.find(r => r.id === selectedArchivedId);
+    if (toRestore) {
+      setRecords(prev => [...prev, toRestore]);
+      setArchivedRecords(prev => prev.filter(r => r.id !== selectedArchivedId));
+      setSelectedArchivedId(null);
+    }
+  };
+
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* 错误提示 */}
@@ -474,6 +501,7 @@ export default function PurchaseQuickWeight() {
           flexDirection: "column",
           padding: 10,
           overflow: "hidden",
+          minHeight: 0, // 确保flex子元素可以收缩
         }}
       >
         {/* 上方：过磅记录表格 */}
@@ -481,13 +509,13 @@ export default function PurchaseQuickWeight() {
           style={{
             flex: 1,
             minHeight: 0,
-            marginBottom: 24,
+            marginBottom: 16,
             display: "flex",
             flexDirection: "column",
           }}
         >
-          <h3>过磅记录</h3>
-          <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
+          <h3 style={{ margin: "0 0 8px 0" }}>过磅记录</h3>
+          <div style={{ marginBottom: 12, display: "flex", gap: 12 }}>
             <Button variant="contained" color="primary" onClick={handleAdd}>
               新增
             </Button>
@@ -499,6 +527,14 @@ export default function PurchaseQuickWeight() {
             >
               删除
             </Button>
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleSaveSelected}
+              disabled={!selectedId}
+            >
+              保存
+            </Button>
           </div>
           <TableContainer
             component={Paper}
@@ -506,7 +542,6 @@ export default function PurchaseQuickWeight() {
               boxShadow: 2,
               flex: 1,
               minHeight: 0,
-              maxHeight: 300,
               overflowY: "auto",
             }}
           >
@@ -519,8 +554,7 @@ export default function PurchaseQuickWeight() {
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>毛重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>皮重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>净重</TableCell>
-                  <TableCell sx={{ width: '8%', whiteSpace: "nowrap", textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单位</TableCell>
-                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单价</TableCell>
+                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单价/斤</TableCell>
                   <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>金额</TableCell>
                 </TableRow>
               </TableHead>
@@ -569,19 +603,6 @@ export default function PurchaseQuickWeight() {
                       />
                     </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}> {r.jingzhong !== null ? r.jingzhong : ""} </TableCell>
-                    <TableCell sx={{ width: '8%', whiteSpace: "nowrap", textAlign: "center", fontSize: "15px" }}>
-                      <EditableCell
-                        record={r}
-                        field="unit"
-                        value={r.unit}
-                        isEditing={editingCell?.id === r.id && editingCell?.field === 'unit'}
-                        onEdit={() => handleCellEdit(r.id, 'unit', r.unit)}
-                        onSave={handleCellSave}
-                        onCancel={handleCellCancel}
-                        onChange={(val) => handleCellChangeImmediate(r.id, 'unit', val)}
-                        onKeyPress={handleEditKeyPress}
-                      />
-                    </TableCell>
                     <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "15px" }}>
                       <EditableCell
                         record={r}
@@ -595,19 +616,10 @@ export default function PurchaseQuickWeight() {
                         onKeyPress={handleEditKeyPress}
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "15px" }}>{r.amount ? r.amount.toFixed(1) : ""}</TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "15px" }}>{r.amount ? r.amount.toFixed(2) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
-              <TableFooter>
-                <TableRow sx={{ position: "sticky", bottom: 0, background: "#fff", zIndex: 2,}}>
-                  <TableCell colSpan={5} align="right" sx={{ fontWeight: 700, fontSize: "16px" }}> 合计：</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}>{totalJingzhong.toFixed(1)}</TableCell>
-                  <TableCell />
-                  <TableCell />
-                  <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}> {totalAmount.toFixed(1)}</TableCell>
-                </TableRow>
-              </TableFooter>
             </Table>
           </TableContainer>
         </div>
@@ -620,8 +632,8 @@ export default function PurchaseQuickWeight() {
             flexDirection: "column",
           }}
         >
-          <h3>归档数据</h3>
-          <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+          <h3 style={{ margin: "0 0 8px 0" }}>归档数据</h3>
+          <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
             <TextField
               label="开始时间"
               type="datetime-local"
@@ -638,13 +650,20 @@ export default function PurchaseQuickWeight() {
               onChange={(e) => setFilterEnd(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
+            <Button
+              variant="contained"
+              color="warning"
+              onClick={handleUnAudit}
+              disabled={!selectedArchivedId}
+            >
+              反审核
+            </Button>
           </div>
           <TableContainer
             component={Paper} sx={{
               boxShadow: 1,
               flex: 1,
               minHeight: 0,
-              maxHeight: 300,
               overflowY: "auto",
             }}
           >
@@ -657,83 +676,21 @@ export default function PurchaseQuickWeight() {
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>毛重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>皮重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>净重</TableCell>
-                  <TableCell sx={{ width: '8%', whiteSpace: "nowrap", textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单位</TableCell>
-                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单价</TableCell>
+                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单价/斤</TableCell>
                   <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>金额</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredArchived.map((r) => (
-                  <TableRow key={r.id}>
+                  <TableRow key={r.id} hover selected={selectedArchivedId === r.id} onClick={() => setSelectedArchivedId(r.id)} style={{ cursor: "pointer" }} >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "15px" }}>{r.id}</TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "15px" }}>{r.time}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
-                      <EditableCell
-                        record={r}
-                        field="item"
-                        value={r.item}
-                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'item'}
-                        onEdit={() => handleArchivedCellEdit(r.id, 'item', r.item)}
-                        onSave={handleArchivedCellSave}
-                        onCancel={handleArchivedCellCancel}
-                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'item', val)}
-                        onKeyPress={handleArchivedEditKeyPress}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
-                      <EditableCell
-                        record={r}
-                        field="maozhong"
-                        value={r.maozhong}
-                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'maozhong'}
-                        onEdit={() => handleArchivedCellEdit(r.id, 'maozhong', r.maozhong)}
-                        onSave={handleArchivedCellSave}
-                        onCancel={handleArchivedCellCancel}
-                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'maozhong', val)}
-                        onKeyPress={handleArchivedEditKeyPress}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
-                      <EditableCell
-                        record={r}
-                        field="pizhong"
-                        value={r.pizhong}
-                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'pizhong'}
-                        onEdit={() => handleArchivedCellEdit(r.id, 'pizhong', r.pizhong)}
-                        onSave={handleArchivedCellSave}
-                        onCancel={handleArchivedCellCancel}
-                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'pizhong', val)}
-                        onKeyPress={handleArchivedEditKeyPress}
-                      />
-                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>{r.item}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                    <TableCell sx={{ width: '8%', whiteSpace: "nowrap", textAlign: "center", fontSize: "15px" }}>
-                      <EditableCell
-                        record={r}
-                        field="unit"
-                        value={r.unit}
-                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'unit'}
-                        onEdit={() => handleArchivedCellEdit(r.id, 'unit', r.unit)}
-                        onSave={handleArchivedCellSave}
-                        onCancel={handleArchivedCellCancel}
-                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'unit', val)}
-                        onKeyPress={handleArchivedEditKeyPress}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "15px" }}>
-                      <EditableCell
-                        record={r}
-                        field="price"
-                        value={r.price}
-                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'price'}
-                        onEdit={() => handleArchivedCellEdit(r.id, 'price', r.price)}
-                        onSave={handleArchivedCellSave}
-                        onCancel={handleArchivedCellCancel}
-                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'price', val)}
-                        onKeyPress={handleArchivedEditKeyPress}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "15px" }}>{r.amount ? r.amount.toFixed(1) : ""}</TableCell>
+                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "15px" }}>{r.price !== null ? r.price : ""}</TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "15px" }}>{r.amount ? r.amount.toFixed(2) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -743,7 +700,7 @@ export default function PurchaseQuickWeight() {
                   <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}>{totalArchivedJingzhong.toFixed(1)}</TableCell>
                   <TableCell />
                   <TableCell />
-                  <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}>{totalArchivedAmount.toFixed(1)}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}>{totalArchivedAmount.toFixed(2)}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
@@ -753,11 +710,12 @@ export default function PurchaseQuickWeight() {
       {/* 右侧：数字显示和操作区 */}
       <div
         style={{
-          width: 300,
+          width: 400, // 由300改为400
           padding: 15,
           borderLeft: "1px solid #eee",
           boxSizing: "border-box",
           height: "100vh",
+          overflow: "hidden", // 防止右侧出现滚动条
         }}
       >
         <div
@@ -774,7 +732,7 @@ export default function PurchaseQuickWeight() {
             marginBottom: 24,
             letterSpacing: 2,
             border: "2px solid #222",
-            minWidth: 220,
+            minWidth: 320, // 由220改为320
             minHeight: 90,
             userSelect: "none",
             display: "flex",
@@ -792,6 +750,7 @@ export default function PurchaseQuickWeight() {
             color="error"
             onClick={handleMaozhong}
             sx={{ fontSize: 20, px: 4, py: 1.5 }}
+            disabled={!selectedId}
           >
             毛重
           </Button>
@@ -800,6 +759,7 @@ export default function PurchaseQuickWeight() {
             color="primary"
             onClick={handlePizhong}
             sx={{ fontSize: 20, px: 4, py: 1.5 }}
+            disabled={!selectedId}
           >
             皮重
           </Button>
