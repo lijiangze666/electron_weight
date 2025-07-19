@@ -19,6 +19,7 @@ import dayjs from "dayjs";
 import Checkbox from "@mui/material/Checkbox";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import axios from "axios";
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -69,6 +70,8 @@ export default function PurchaseQuickWeight() {
   const [editingArchivedCell, setEditingArchivedCell] = useState<EditState | null>(null);
   // 归档表格多选选中行id
   const [selectedArchivedIds, setSelectedArchivedIds] = useState<string[]>([]);
+  // 新增成功提示状态
+  const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
     ipcRenderer.send("open-serialport");
@@ -130,23 +133,46 @@ export default function PurchaseQuickWeight() {
   };
 
   // 保存选中行到归档
-  const handleSaveSelected = () => {
+  const handleSaveSelected = async () => {
     if (!selectedId) return;
-    const toArchive = records.find(r => r.id === selectedId);
-    if (toArchive) {
+    const toSave = records.find(r => r.id === selectedId);
+    if (toSave) {
       // 校验毛重、皮重、单价必须有值
       if (
-        toArchive.maozhong === null ||
-        toArchive.pizhong === null ||
-        toArchive.price === null
+        toSave.maozhong === null
       ) {
-        setError("毛重、皮重、单价必须填写！");
+        setError("毛重必须填写！");
         setOpen(true);
         return;
       }
-      setArchivedRecords(prev => [...prev, toArchive]);
-      setRecords(prev => prev.filter(r => r.id !== selectedId));
-      setSelectedId(null);
+      try {
+        // 调用后端接口
+        const res = await axios.post("http://localhost:3001/api/purchase-weight", {
+          bill_no: toSave.id,
+          time: toSave.time,
+          supplier: toSave.supplier,
+          item: toSave.item,
+          maozhong: toSave.maozhong,
+          pizhong: toSave.pizhong,
+          jingzhong: toSave.jingzhong,
+          unit: toSave.unit,
+          price: toSave.price,
+          amount: toSave.amount,
+          is_deleted: 0
+        });
+        if (res.data.code === 0) {
+          setSuccessMsg("保存成功！");
+          setOpen(true);
+          setSelectedId(null);
+        } else {
+          setError(res.data.msg || "保存失败！");
+          setOpen(true);
+        }
+      } catch (err) {
+        const errorMsg = (err as any).message || String(err);
+        setError("保存失败：" + errorMsg);
+        setOpen(true);
+      }
     }
   };
 
@@ -466,7 +492,7 @@ export default function PurchaseQuickWeight() {
       if (field === 'item') {
         return (
           <Select
-            value={localValue}
+            value={localValue ?? ""}
             onChange={e => setLocalValue(e.target.value)}
             onBlur={handleSave}
             autoFocus
@@ -481,7 +507,7 @@ export default function PurchaseQuickWeight() {
       }
       return (
         <TextField
-          value={localValue}
+          value={localValue ?? ""}
           onChange={(e) => setLocalValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -546,11 +572,15 @@ export default function PurchaseQuickWeight() {
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setOpen(false)}
-          severity="error"
+          onClose={() => {
+            setOpen(false);
+            setSuccessMsg("");
+            setError("");
+          }}
+          severity={successMsg ? "success" : "error"}
           sx={{ width: "100%" }}
         >
-          {error}
+          {(successMsg || error) as string}
         </Alert>
       </Snackbar>
       {/* 左侧：上下两个表格 */}
