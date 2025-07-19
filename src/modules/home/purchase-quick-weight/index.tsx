@@ -544,6 +544,10 @@ export default function PurchaseQuickWeight() {
           overflow: "hidden",
           minHeight: 0, // 确保flex子元素可以收缩
         }}
+        onClick={() => {
+          setSelectedId(null);
+          setSelectedArchivedId && setSelectedArchivedId(null);
+        }}
       >
         {/* 上方：过磅记录表格 */}
         <div
@@ -603,7 +607,13 @@ export default function PurchaseQuickWeight() {
               </TableHead>
               <TableBody>
                 {records.map((r) => (
-                  <TableRow key={r.id} hover selected={selectedId === r.id} onClick={() => setSelectedId(r.id)} style={{ cursor: "pointer" }} >
+                  <TableRow
+                    key={r.id}
+                    hover
+                    selected={selectedId === r.id}
+                    onClick={e => { e.stopPropagation(); setSelectedId(r.id); }}
+                    style={{ cursor: "pointer" }}
+                  >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}> {r.id} </TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}> {r.time} </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
@@ -733,7 +743,13 @@ export default function PurchaseQuickWeight() {
               </TableHead>
               <TableBody>
                 {filteredArchived.map((r) => (
-                  <TableRow key={r.id} hover selected={selectedArchivedId === r.id} onClick={() => setSelectedArchivedId(r.id)} style={{ cursor: "pointer" }} >
+                  <TableRow
+                    key={r.id}
+                    hover
+                    selected={selectedArchivedId === r.id}
+                    onClick={e => { e.stopPropagation(); setSelectedArchivedId(r.id); }}
+                    style={{ cursor: "pointer" }}
+                  >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.id}</TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.time}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.item}</TableCell>
