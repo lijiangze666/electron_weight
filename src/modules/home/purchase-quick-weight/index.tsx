@@ -17,6 +17,8 @@ import TextField from "@mui/material/TextField";
 import TableFooter from "@mui/material/TableFooter";
 import dayjs from "dayjs";
 import Checkbox from "@mui/material/Checkbox";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -107,19 +109,19 @@ export default function PurchaseQuickWeight() {
     );
   };
 
-  // 新增一条空数据
+  // 新增一条空数据时，item默认为小麦
   const handleAdd = () => {
     setRecords([
       ...records,
       {
         id: genId(),
         time: getTime(),
-        item: "物品A", // 可自定义
+        item: "小麦", // 默认为小麦
         maozhong: null,
         pizhong: null,
         jingzhong: null,
-        unit: "千克", // 单位改为千克
-        price: null, // 新增单价
+        unit: "斤",
+        price: null,
         amount: 0,
       },
     ]);
@@ -157,7 +159,8 @@ export default function PurchaseQuickWeight() {
     }
   };
 
-  // 取消 handlePizhong 的自动归档逻辑
+  // 修正金额计算逻辑：金额 = 单价 * 净重 * 2
+  // handlePizhong
   const handlePizhong = () => {
     if (
       isStable &&
@@ -175,7 +178,7 @@ export default function PurchaseQuickWeight() {
               return row;
             }
             const jingzhong = row.maozhong - pizhong;
-            const amount = row.price ? jingzhong * row.price : 0;
+            const amount = row.price ? (jingzhong * row.price) * 2 : 0;
             return { ...row, pizhong, jingzhong, amount };
           }
           return row;
@@ -195,7 +198,15 @@ export default function PurchaseQuickWeight() {
     setRecords((prev) =>
       prev.map((row) => {
         if (row.id === selectedId) {
-          return { ...row, maozhong: Number(serialData), price: priceValue };
+          // 只更新毛重和单价，金额联动
+          const maozhong = Number(serialData);
+          let jingzhong = null;
+          let amount = 0;
+          if (row.pizhong !== null) {
+            jingzhong = maozhong - row.pizhong;
+            amount = (jingzhong * priceValue) * 2;
+          }
+          return { ...row, maozhong, price: priceValue, jingzhong, amount };
         }
         return row;
       })
@@ -306,27 +317,39 @@ export default function PurchaseQuickWeight() {
           case 'item':
             updatedRecord.item = value;
             break;
-          case 'maozhong':
+          case 'maozhong': {
             const maozhong = parseFloat(value);
+            if (updatedRecord.pizhong !== null && !isNaN(maozhong) && maozhong <= updatedRecord.pizhong) {
+              setError("毛重必须大于皮重！");
+              setOpen(true);
+              return record;
+            }
             updatedRecord.maozhong = isNaN(maozhong) ? null : maozhong;
             if (updatedRecord.pizhong !== null && updatedRecord.maozhong !== null) {
               updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
-              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price : 0;
+              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price * 2 : 0;
             }
             break;
-          case 'pizhong':
+          }
+          case 'pizhong': {
             const pizhong = parseFloat(value);
+            if (updatedRecord.maozhong !== null && !isNaN(pizhong) && pizhong >= updatedRecord.maozhong) {
+              setError("皮重不能大于等于毛重！");
+              setOpen(true);
+              return record;
+            }
             updatedRecord.pizhong = isNaN(pizhong) ? null : pizhong;
             if (updatedRecord.maozhong !== null && updatedRecord.pizhong !== null) {
               updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
-              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price : 0;
+              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price * 2 : 0;
             }
             break;
+          }
           case 'price':
             const price = parseFloat(value);
             updatedRecord.price = isNaN(price) ? null : price;
             if (updatedRecord.jingzhong !== null && updatedRecord.price !== null) {
-              updatedRecord.amount = updatedRecord.jingzhong * updatedRecord.price;
+              updatedRecord.amount = updatedRecord.jingzhong * updatedRecord.price * 2;
             }
             break;
           case 'unit':
@@ -353,7 +376,7 @@ export default function PurchaseQuickWeight() {
             updatedRecord.maozhong = isNaN(maozhong) ? null : maozhong;
             if (updatedRecord.pizhong !== null && updatedRecord.maozhong !== null) {
               updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
-              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price : 0;
+              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price * 2 : 0;
             }
             break;
           case 'pizhong':
@@ -361,14 +384,14 @@ export default function PurchaseQuickWeight() {
             updatedRecord.pizhong = isNaN(pizhong) ? null : pizhong;
             if (updatedRecord.maozhong !== null && updatedRecord.pizhong !== null) {
               updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
-              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price : 0;
+              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price * 2 : 0;
             }
             break;
           case 'price':
             const price = parseFloat(value);
             updatedRecord.price = isNaN(price) ? null : price;
             if (updatedRecord.jingzhong !== null && updatedRecord.price !== null) {
-              updatedRecord.amount = updatedRecord.jingzhong * updatedRecord.price;
+              updatedRecord.amount = updatedRecord.jingzhong * updatedRecord.price * 2;
             }
             break;
           case 'unit':
@@ -423,6 +446,22 @@ export default function PurchaseQuickWeight() {
     };
 
     if (isEditing) {
+      if (field === 'item') {
+        return (
+          <Select
+            value={localValue}
+            onChange={e => setLocalValue(e.target.value)}
+            onBlur={handleSave}
+            autoFocus
+            size="small"
+            sx={{ fontSize: '20px', minWidth: 80 }}
+            MenuProps={{ PaperProps: { sx: { fontSize: '20px' } } }}
+          >
+            <MenuItem value="小麦" sx={{ fontSize: '20px' }}>小麦</MenuItem>
+            <MenuItem value="玉米" sx={{ fontSize: '20px' }}>玉米</MenuItem>
+          </Select>
+        );
+      }
       return (
         <TextField
           value={localValue}
@@ -439,7 +478,7 @@ export default function PurchaseQuickWeight() {
           size="small"
           sx={{
             '& .MuiInputBase-input': {
-              fontSize: '15px',
+              fontSize: '20px',
               textAlign: 'center',
               padding: '4px 8px'
             }
@@ -687,7 +726,8 @@ export default function PurchaseQuickWeight() {
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>毛重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>皮重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>净重</TableCell>
-                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单价/公斤</TableCell>
                   <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>金额</TableCell>
                 </TableRow>
               </TableHead>
@@ -700,7 +740,8 @@ export default function PurchaseQuickWeight() {
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#1976d2' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>
                     <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#1976d2' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
                   </TableRow>
                 ))}
