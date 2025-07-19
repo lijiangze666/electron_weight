@@ -548,22 +548,22 @@ export default function PurchaseQuickWeight() {
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow sx={{ background: "#f5f5f5" }}>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单据号</TableCell>
-                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>时间</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>物品</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>毛重</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>皮重</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>净重</TableCell>
-                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单价/斤</TableCell>
-                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>金额</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单据号</TableCell>
+                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>时间</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>物品</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>毛重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>皮重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>净重</TableCell>
+                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>金额</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {records.map((r) => (
                   <TableRow key={r.id} hover selected={selectedId === r.id} onClick={() => setSelectedId(r.id)} style={{ cursor: "pointer" }} >
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "18px" }}> {r.id} </TableCell>
-                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "18px" }}> {r.time} </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "18px" }}>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}> {r.id} </TableCell>
+                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}> {r.time} </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
                         field="item"
@@ -576,7 +576,7 @@ export default function PurchaseQuickWeight() {
                         onKeyPress={handleEditKeyPress}
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "18px" }}>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
                         field="maozhong"
@@ -589,7 +589,7 @@ export default function PurchaseQuickWeight() {
                         onKeyPress={handleEditKeyPress}
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "18px" }}>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
                         field="pizhong"
@@ -602,8 +602,8 @@ export default function PurchaseQuickWeight() {
                         onKeyPress={handleEditKeyPress}
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "18px", fontWeight: 700 }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "18px" }}>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700 }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
+                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
                         field="price"
@@ -616,7 +616,7 @@ export default function PurchaseQuickWeight() {
                         onKeyPress={handleEditKeyPress}
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "18px", fontWeight: 700 }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700 }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -670,27 +670,27 @@ export default function PurchaseQuickWeight() {
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow sx={{ background: "#f5f5f5" }}>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单据号</TableCell>
-                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>时间</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>物品</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>毛重</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>皮重</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>净重</TableCell>
-                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单价/斤</TableCell>
-                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>金额</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单据号</TableCell>
+                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>时间</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>物品</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>毛重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>皮重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>净重</TableCell>
+                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>金额</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredArchived.map((r) => (
                   <TableRow key={r.id} hover selected={selectedArchivedId === r.id} onClick={() => setSelectedArchivedId(r.id)} style={{ cursor: "pointer" }} >
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "18px", color: '#1976d2' }}>{r.id}</TableCell>
-                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "18px", color: '#1976d2' }}>{r.time}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "18px", color: '#1976d2' }}>{r.item}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "18px", color: '#1976d2' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "18px", color: '#1976d2' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "18px", fontWeight: 700, color: '#1976d2' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "18px", color: '#1976d2' }}>{r.price !== null ? r.price : ""}</TableCell>
-                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "18px", fontWeight: 700, color: '#1976d2' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.id}</TableCell>
+                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.time}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.item}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#1976d2' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
+                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price : ""}</TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#1976d2' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -757,7 +757,7 @@ export default function PurchaseQuickWeight() {
             variant="contained"
             color="error"
             onClick={handleMaozhong}
-            sx={{ fontSize: 20, px: 4, py: 1.5 }}
+            sx={{ fontSize: 22, px: 6, py: 2, minWidth: 120 }}
             disabled={!selectedId}
           >
             毛重
@@ -766,7 +766,7 @@ export default function PurchaseQuickWeight() {
             variant="contained"
             color="primary"
             onClick={handlePizhong}
-            sx={{ fontSize: 20, px: 4, py: 1.5 }}
+            sx={{ fontSize: 22, px: 6, py: 2, minWidth: 120 }}
             disabled={!selectedId}
           >
             皮重
