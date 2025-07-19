@@ -429,7 +429,8 @@ export default function PurchaseQuickWeight() {
     onSave,
     onCancel,
     onChange,
-    onKeyPress
+    onKeyPress,
+    trigger
   }: {
     record: any;
     field: string;
@@ -440,6 +441,7 @@ export default function PurchaseQuickWeight() {
     onCancel: () => void;
     onChange: (value: string) => void;
     onKeyPress: (e: React.KeyboardEvent) => void;
+    trigger: 'double' | 'single';
   }) => {
     const [localValue, setLocalValue] = React.useState(value);
 
@@ -501,9 +503,11 @@ export default function PurchaseQuickWeight() {
         />
       );
     }
+    // 支持 trigger="double" 传参，决定是单击还是双击触发编辑
     return (
       <div
-        onClick={onEdit}
+        onDoubleClick={trigger === 'double' ? onEdit : undefined}
+        onClick={trigger === 'double' ? undefined : onEdit}
         style={{
           cursor: 'pointer',
           padding: '8px',
@@ -512,7 +516,7 @@ export default function PurchaseQuickWeight() {
           alignItems: 'center',
           justifyContent: 'center'
         }}
-        title="点击编辑"
+        title={trigger === 'double' ? "双击编辑" : "点击编辑"}
       >
         {value !== null && value !== undefined ? value : ""}
       </div>
@@ -643,6 +647,7 @@ export default function PurchaseQuickWeight() {
                         onCancel={handleCellCancel}
                         onChange={(val) => handleCellChangeImmediate(r.id, 'supplier', val)}
                         onKeyPress={handleEditKeyPress}
+                        trigger="double"
                       />
                     </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
@@ -656,6 +661,7 @@ export default function PurchaseQuickWeight() {
                         onCancel={handleCellCancel}
                         onChange={(val) => handleCellChangeImmediate(r.id, 'item', val)}
                         onKeyPress={handleEditKeyPress}
+                        trigger="double"
                       />
                     </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
@@ -669,6 +675,7 @@ export default function PurchaseQuickWeight() {
                         onCancel={handleCellCancel}
                         onChange={(val) => handleCellChangeImmediate(r.id, 'maozhong', val)}
                         onKeyPress={handleEditKeyPress}
+                        trigger="double"
                       />
                     </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
@@ -682,6 +689,7 @@ export default function PurchaseQuickWeight() {
                         onCancel={handleCellCancel}
                         onChange={(val) => handleCellChangeImmediate(r.id, 'pizhong', val)}
                         onKeyPress={handleEditKeyPress}
+                        trigger="double"
                       />
                     </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700 }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
@@ -696,6 +704,7 @@ export default function PurchaseQuickWeight() {
                         onCancel={handleCellCancel}
                         onChange={(val) => handleCellChangeImmediate(r.id, 'price', val)}
                         onKeyPress={handleEditKeyPress}
+                        trigger="double"
                       />
                     </TableCell>
                     <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700 }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
@@ -783,12 +792,51 @@ export default function PurchaseQuickWeight() {
                   >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.id}</TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.time}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.supplier !== null ? r.supplier : ""}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.item}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>
+                      <EditableCell
+                        record={r}
+                        field="supplier"
+                        value={r.supplier}
+                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'supplier'}
+                        onEdit={() => handleArchivedCellEdit(r.id, 'supplier', r.supplier)}
+                        onSave={handleArchivedCellSave}
+                        onCancel={handleArchivedCellCancel}
+                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'supplier', val)}
+                        onKeyPress={handleArchivedEditKeyPress}
+                        trigger="single"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>
+                      <EditableCell
+                        record={r}
+                        field="item"
+                        value={r.item}
+                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'item'}
+                        onEdit={() => handleArchivedCellEdit(r.id, 'item', r.item)}
+                        onSave={handleArchivedCellSave}
+                        onCancel={handleArchivedCellCancel}
+                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'item', val)}
+                        onKeyPress={handleArchivedEditKeyPress}
+                        trigger="single"
+                      />
+                    </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#1976d2' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>
+                      <EditableCell
+                        record={r}
+                        field="price"
+                        value={r.price}
+                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'price'}
+                        onEdit={() => handleArchivedCellEdit(r.id, 'price', r.price)}
+                        onSave={handleArchivedCellSave}
+                        onCancel={handleArchivedCellCancel}
+                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'price', val)}
+                        onKeyPress={handleArchivedEditKeyPress}
+                        trigger="single"
+                      />
+                    </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>
                     <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#1976d2' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
                   </TableRow>
