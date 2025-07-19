@@ -15,7 +15,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
 import TableFooter from "@mui/material/TableFooter";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 
 const { ipcRenderer } = window.require
@@ -388,13 +387,38 @@ export default function PurchaseQuickWeight() {
     onChange: (value: string) => void;
     onKeyPress: (e: React.KeyboardEvent) => void;
   }) => {
+    const [localValue, setLocalValue] = React.useState(value);
+
+    // 当编辑状态改变时，更新本地值
+    React.useEffect(() => {
+      setLocalValue(value);
+    }, [value, isEditing]);
+
+    const handleSave = () => {
+      if (localValue !== value) {
+        onChange(localValue);
+      }
+      onSave();
+    };
+
+    const handleCancel = () => {
+      setLocalValue(value); // 恢复原值
+      onCancel();
+    };
+
     if (isEditing) {
       return (
         <TextField
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyPress}
-          onBlur={onSave}
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSave();
+            } else if (e.key === 'Escape') {
+              handleCancel();
+            }
+          }}
+          onBlur={handleSave}
           autoFocus
           size="small"
           sx={{
