@@ -34,6 +34,13 @@ interface RecordItem {
   amount: number;
 }
 
+// 编辑状态接口
+interface EditState {
+  id: string;
+  field: string;
+  value: string;
+}
+
 export default function PurchaseQuickWeight() {
   const [serialData, setSerialData] = useState("");
   const lastWeightRef = useRef<number | null>(null);
@@ -51,6 +58,10 @@ export default function PurchaseQuickWeight() {
   const [archivedRecords, setArchivedRecords] = useState<RecordItem[]>([]);
   const [filterStart, setFilterStart] = useState<string>("");
   const [filterEnd, setFilterEnd] = useState<string>("");
+  // 编辑状态
+  const [editingCell, setEditingCell] = useState<EditState | null>(null);
+  // 归档数据编辑状态
+  const [editingArchivedCell, setEditingArchivedCell] = useState<EditState | null>(null);
 
   useEffect(() => {
     ipcRenderer.send("open-serialport");
@@ -201,6 +212,219 @@ export default function PurchaseQuickWeight() {
     0
   );
 
+  // 开始编辑单元格
+  const handleCellEdit = (id: string, field: string, currentValue: any) => {
+    setEditingCell({
+      id,
+      field,
+      value: currentValue !== null ? currentValue.toString() : ""
+    });
+  };
+
+  // 保存编辑（现在只做退出编辑）
+  const handleCellSave = () => {
+    setEditingCell(null);
+  };
+
+  // 取消编辑
+  const handleCellCancel = () => {
+    setEditingCell(null);
+  };
+
+  // 处理编辑输入变化
+  const handleEditChange = (value: string) => {
+    if (editingCell) {
+      setEditingCell({ ...editingCell, value });
+    }
+  };
+
+  // 处理编辑键盘事件
+  const handleEditKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleCellSave();
+    } else if (e.key === 'Escape') {
+      handleCellCancel();
+    }
+  };
+
+  // 开始编辑归档数据单元格
+  const handleArchivedCellEdit = (id: string, field: string, currentValue: any) => {
+    setEditingArchivedCell({
+      id,
+      field,
+      value: currentValue !== null ? currentValue.toString() : ""
+    });
+  };
+
+  // 保存归档数据编辑（现在只做退出编辑）
+  const handleArchivedCellSave = () => {
+    setEditingArchivedCell(null);
+  };
+
+  // 取消编辑归档数据
+  const handleArchivedCellCancel = () => {
+    setEditingArchivedCell(null);
+  };
+
+  // 处理归档数据编辑输入变化
+  const handleArchivedEditChange = (value: string) => {
+    if (editingArchivedCell) {
+      setEditingArchivedCell({ ...editingArchivedCell, value });
+    }
+  };
+
+  // 处理归档数据编辑键盘事件
+  const handleArchivedEditKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleArchivedCellSave();
+    } else if (e.key === 'Escape') {
+      handleArchivedCellCancel();
+    }
+  };
+
+  // 实时更新 records
+  const handleCellChangeImmediate = (id: string, field: string, value: string) => {
+    setRecords(prev => prev.map(record => {
+      if (record.id === id) {
+        const updatedRecord = { ...record };
+        switch (field) {
+          case 'item':
+            updatedRecord.item = value;
+            break;
+          case 'maozhong':
+            const maozhong = parseFloat(value);
+            updatedRecord.maozhong = isNaN(maozhong) ? null : maozhong;
+            if (updatedRecord.pizhong !== null && updatedRecord.maozhong !== null) {
+              updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
+              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price : 0;
+            }
+            break;
+          case 'pizhong':
+            const pizhong = parseFloat(value);
+            updatedRecord.pizhong = isNaN(pizhong) ? null : pizhong;
+            if (updatedRecord.maozhong !== null && updatedRecord.pizhong !== null) {
+              updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
+              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price : 0;
+            }
+            break;
+          case 'price':
+            const price = parseFloat(value);
+            updatedRecord.price = isNaN(price) ? null : price;
+            if (updatedRecord.jingzhong !== null && updatedRecord.price !== null) {
+              updatedRecord.amount = updatedRecord.jingzhong * updatedRecord.price;
+            }
+            break;
+          case 'unit':
+            updatedRecord.unit = value;
+            break;
+        }
+        return updatedRecord;
+      }
+      return record;
+    }));
+  };
+
+  // 实时更新 archivedRecords
+  const handleArchivedCellChangeImmediate = (id: string, field: string, value: string) => {
+    setArchivedRecords(prev => prev.map(record => {
+      if (record.id === id) {
+        const updatedRecord = { ...record };
+        switch (field) {
+          case 'item':
+            updatedRecord.item = value;
+            break;
+          case 'maozhong':
+            const maozhong = parseFloat(value);
+            updatedRecord.maozhong = isNaN(maozhong) ? null : maozhong;
+            if (updatedRecord.pizhong !== null && updatedRecord.maozhong !== null) {
+              updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
+              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price : 0;
+            }
+            break;
+          case 'pizhong':
+            const pizhong = parseFloat(value);
+            updatedRecord.pizhong = isNaN(pizhong) ? null : pizhong;
+            if (updatedRecord.maozhong !== null && updatedRecord.pizhong !== null) {
+              updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
+              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price : 0;
+            }
+            break;
+          case 'price':
+            const price = parseFloat(value);
+            updatedRecord.price = isNaN(price) ? null : price;
+            if (updatedRecord.jingzhong !== null && updatedRecord.price !== null) {
+              updatedRecord.amount = updatedRecord.jingzhong * updatedRecord.price;
+            }
+            break;
+          case 'unit':
+            updatedRecord.unit = value;
+            break;
+        }
+        return updatedRecord;
+      }
+      return record;
+    }));
+  };
+
+  // 可编辑单元格组件（移到组件外部，并用React.memo包裹）
+  const EditableCell = React.memo(({
+    record,
+    field,
+    value,
+    isEditing,
+    onEdit,
+    onSave,
+    onCancel,
+    onChange,
+    onKeyPress
+  }: {
+    record: any;
+    field: string;
+    value: any;
+    isEditing: boolean;
+    onEdit: () => void;
+    onSave: () => void;
+    onCancel: () => void;
+    onChange: (value: string) => void;
+    onKeyPress: (e: React.KeyboardEvent) => void;
+  }) => {
+    if (isEditing) {
+      return (
+        <TextField
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyPress}
+          onBlur={onSave}
+          autoFocus
+          size="small"
+          sx={{
+            '& .MuiInputBase-input': {
+              fontSize: '15px',
+              textAlign: 'center',
+              padding: '4px 8px'
+            }
+          }}
+        />
+      );
+    }
+    return (
+      <div
+        onClick={onEdit}
+        style={{
+          cursor: 'pointer',
+          padding: '8px',
+          minHeight: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        title="点击编辑"
+      >
+        {value !== null && value !== undefined ? value : ""}
+      </div>
+    );
+  });
+
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* 错误提示 */}
@@ -265,39 +489,99 @@ export default function PurchaseQuickWeight() {
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow sx={{ background: "#f5f5f5" }}>
-                  <TableCell sx={{ minWidth: 100, textAlign: "center" }}>单据号</TableCell>
-                  <TableCell sx={{ minWidth: 150, maxWidth: 180, whiteSpace: "nowrap",textAlign: "center",}}>时间</TableCell>
-                  <TableCell sx={{ minWidth: 80, textAlign: "center" }}>物品</TableCell>
-                  <TableCell sx={{ width: 90, textAlign: "center" }}>毛重</TableCell>
-                  <TableCell sx={{ width: 90, textAlign: "center" }}>皮重</TableCell>
-                  <TableCell sx={{ width: 90, textAlign: "center" }}>净重</TableCell>
-                  <TableCell sx={{ width: 60, maxWidth: 80, whiteSpace: "nowrap", textAlign: "center",}}>单位</TableCell>
-                  <TableCell sx={{ width: 90, textAlign: "center" }}>单价</TableCell>
-                  <TableCell sx={{ width: 100, textAlign: "center" }}>金额</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单据号</TableCell>
+                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>时间</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>物品</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>毛重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>皮重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>净重</TableCell>
+                  <TableCell sx={{ width: '8%', whiteSpace: "nowrap", textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单位</TableCell>
+                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单价</TableCell>
+                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>金额</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {records.map((r) => (
                   <TableRow key={r.id} hover selected={selectedId === r.id} onClick={() => setSelectedId(r.id)} style={{ cursor: "pointer" }} >
-                    <TableCell sx={{ minWidth: 100, textAlign: "center" }}> {r.id} </TableCell>
-                    <TableCell sx={{ minWidth: 150, maxWidth: 180, whiteSpace: "nowrap", textAlign: "center",}}> {r.time} </TableCell>
-                    <TableCell sx={{ minWidth: 80, textAlign: "center" }}> {r.item} </TableCell>
-                    <TableCell sx={{ width: 90, textAlign: "center" }}> {r.maozhong !== null ? r.maozhong : ""} </TableCell>
-                    <TableCell sx={{ width: 90, textAlign: "center" }}> {r.pizhong !== null ? r.pizhong : ""} </TableCell>
-                    <TableCell sx={{ width: 90, textAlign: "center" }}> {r.jingzhong !== null ? r.jingzhong : ""} </TableCell>
-                    <TableCell sx={{  width: 60, maxWidth: 80, whiteSpace: "nowrap", textAlign: "center", }}>{r.unit}</TableCell>
-                    <TableCell sx={{ width: 90, textAlign: "center" }}>{r.price !== null ? r.price : ""}</TableCell>
-                    <TableCell sx={{ width: 100, textAlign: "center" }}>{r.amount ? r.amount.toFixed(1) : ""}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "15px" }}> {r.id} </TableCell>
+                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "15px" }}> {r.time} </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="item"
+                        value={r.item}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'item'}
+                        onEdit={() => handleCellEdit(r.id, 'item', r.item)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'item', val)}
+                        onKeyPress={handleEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="maozhong"
+                        value={r.maozhong}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'maozhong'}
+                        onEdit={() => handleCellEdit(r.id, 'maozhong', r.maozhong)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'maozhong', val)}
+                        onKeyPress={handleEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="pizhong"
+                        value={r.pizhong}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'pizhong'}
+                        onEdit={() => handleCellEdit(r.id, 'pizhong', r.pizhong)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'pizhong', val)}
+                        onKeyPress={handleEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}> {r.jingzhong !== null ? r.jingzhong : ""} </TableCell>
+                    <TableCell sx={{ width: '8%', whiteSpace: "nowrap", textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="unit"
+                        value={r.unit}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'unit'}
+                        onEdit={() => handleCellEdit(r.id, 'unit', r.unit)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'unit', val)}
+                        onKeyPress={handleEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="price"
+                        value={r.price}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'price'}
+                        onEdit={() => handleCellEdit(r.id, 'price', r.price)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'price', val)}
+                        onKeyPress={handleEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "15px" }}>{r.amount ? r.amount.toFixed(1) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               <TableFooter>
                 <TableRow sx={{ position: "sticky", bottom: 0, background: "#fff", zIndex: 2,}}>
-                  <TableCell colSpan={5} align="right" sx={{ fontWeight: 700 }}> 合计：</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>{totalJingzhong.toFixed(1)}</TableCell>
+                  <TableCell colSpan={5} align="right" sx={{ fontWeight: 700, fontSize: "16px" }}> 合计：</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}>{totalJingzhong.toFixed(1)}</TableCell>
                   <TableCell />
                   <TableCell />
-                  <TableCell sx={{ fontWeight: 700 }}> {totalAmount.toFixed(1)}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}> {totalAmount.toFixed(1)}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
@@ -343,39 +627,99 @@ export default function PurchaseQuickWeight() {
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow sx={{ background: "#f5f5f5" }}>
-                  <TableCell sx={{ minWidth: 100, textAlign: "center" }}>单据号</TableCell>
-                  <TableCell sx={{ minWidth: 150, maxWidth: 180, whiteSpace: "nowrap", textAlign: "center", }}>时间</TableCell>
-                  <TableCell sx={{ minWidth: 80, textAlign: "center" }}>物品</TableCell>
-                  <TableCell sx={{ width: 90, textAlign: "center" }}>毛重</TableCell>
-                  <TableCell sx={{ width: 90, textAlign: "center" }}>皮重</TableCell>
-                  <TableCell sx={{ width: 90, textAlign: "center" }}>净重</TableCell>
-                  <TableCell sx={{ width: 60, maxWidth: 80, whiteSpace: "nowrap", textAlign: "center",}}>单位</TableCell>
-                  <TableCell sx={{ width: 90, textAlign: "center" }}>单价</TableCell>
-                  <TableCell sx={{ width: 100, textAlign: "center" }}>金额</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单据号</TableCell>
+                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>时间</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>物品</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>毛重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>皮重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>净重</TableCell>
+                  <TableCell sx={{ width: '8%', whiteSpace: "nowrap", textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单位</TableCell>
+                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>单价</TableCell>
+                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "16px", fontWeight: "bold" }}>金额</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredArchived.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell sx={{ minWidth: 100, textAlign: "center" }}>{r.id}</TableCell>
-                    <TableCell sx={{ minWidth: 150, maxWidth: 180, whiteSpace: "nowrap", textAlign: "center",}}>{r.time}</TableCell>
-                    <TableCell sx={{ minWidth: 80, textAlign: "center" }}>{r.item}</TableCell>
-                    <TableCell sx={{ width: 90, textAlign: "center" }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
-                    <TableCell sx={{ width: 90, textAlign: "center" }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
-                    <TableCell sx={{ width: 90, textAlign: "center" }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                    <TableCell sx={{ width: 60, maxWidth: 80, whiteSpace: "nowrap", textAlign: "center",}}>{r.unit}</TableCell>
-                    <TableCell sx={{ width: 90, textAlign: "center" }}>{r.price !== null ? r.price : ""}</TableCell>
-                    <TableCell sx={{ width: 100, textAlign: "center" }}>{r.amount ? r.amount.toFixed(1) : ""}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "15px" }}>{r.id}</TableCell>
+                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "15px" }}>{r.time}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="item"
+                        value={r.item}
+                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'item'}
+                        onEdit={() => handleArchivedCellEdit(r.id, 'item', r.item)}
+                        onSave={handleArchivedCellSave}
+                        onCancel={handleArchivedCellCancel}
+                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'item', val)}
+                        onKeyPress={handleArchivedEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="maozhong"
+                        value={r.maozhong}
+                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'maozhong'}
+                        onEdit={() => handleArchivedCellEdit(r.id, 'maozhong', r.maozhong)}
+                        onSave={handleArchivedCellSave}
+                        onCancel={handleArchivedCellCancel}
+                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'maozhong', val)}
+                        onKeyPress={handleArchivedEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="pizhong"
+                        value={r.pizhong}
+                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'pizhong'}
+                        onEdit={() => handleArchivedCellEdit(r.id, 'pizhong', r.pizhong)}
+                        onSave={handleArchivedCellSave}
+                        onCancel={handleArchivedCellCancel}
+                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'pizhong', val)}
+                        onKeyPress={handleArchivedEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "15px" }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
+                    <TableCell sx={{ width: '8%', whiteSpace: "nowrap", textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="unit"
+                        value={r.unit}
+                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'unit'}
+                        onEdit={() => handleArchivedCellEdit(r.id, 'unit', r.unit)}
+                        onSave={handleArchivedCellSave}
+                        onCancel={handleArchivedCellCancel}
+                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'unit', val)}
+                        onKeyPress={handleArchivedEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "15px" }}>
+                      <EditableCell
+                        record={r}
+                        field="price"
+                        value={r.price}
+                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'price'}
+                        onEdit={() => handleArchivedCellEdit(r.id, 'price', r.price)}
+                        onSave={handleArchivedCellSave}
+                        onCancel={handleArchivedCellCancel}
+                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'price', val)}
+                        onKeyPress={handleArchivedEditKeyPress}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "15px" }}>{r.amount ? r.amount.toFixed(1) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               <TableFooter>
                 <TableRow sx={{ position: "sticky", bottom: 0, background: "#fff", zIndex: 2,}}>
-                  <TableCell colSpan={5} align="right" sx={{ fontWeight: 700 }}> 合计：</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>{totalArchivedJingzhong.toFixed(1)}</TableCell>
+                  <TableCell colSpan={5} align="right" sx={{ fontWeight: 700, fontSize: "16px" }}> 合计：</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}>{totalArchivedJingzhong.toFixed(1)}</TableCell>
                   <TableCell />
                   <TableCell />
-                  <TableCell sx={{ fontWeight: 700 }}>{totalArchivedAmount.toFixed(1)}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: "16px" }}>{totalArchivedAmount.toFixed(1)}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
