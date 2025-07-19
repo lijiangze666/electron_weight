@@ -479,7 +479,7 @@ export default function PurchaseQuickWeight() {
   const bigBtnStyle = { fontSize: 20, px: 1, py: 1, minWidth: 90 };
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+    <div style={{ display: "flex", width: '100%', height: '100%', minHeight: 0 }}>
       {/* 错误提示 */}
       <Snackbar
         open={open}
@@ -729,11 +729,11 @@ export default function PurchaseQuickWeight() {
       {/* 右侧：数字显示和操作区 */}
       <div
         style={{
-          width: 400, // 由300改为400
+          width: 455, // 由300改为400
           padding: 15,
           borderLeft: "1px solid #eee",
           boxSizing: "border-box",
-          height: "100vh",
+          height: "100%", // 修正
           overflow: "hidden", // 防止右侧出现滚动条
         }}
       >
