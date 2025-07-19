@@ -601,8 +601,8 @@ export default function PurchaseQuickWeight() {
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>毛重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>皮重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>净重</TableCell>
-                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单价/斤</TableCell>
-                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>金额</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>金额</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -749,6 +749,7 @@ export default function PurchaseQuickWeight() {
                     selected={selectedArchivedId === r.id}
                     onClick={e => { e.stopPropagation(); setSelectedArchivedId(r.id); }}
                     style={{ cursor: "pointer" }}
+                    sx={{ height: 52 }}
                   >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.id}</TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.time}</TableCell>
