@@ -475,6 +475,8 @@ export default function PurchaseQuickWeight() {
       setSelectedArchivedId(null);
     }
   };
+  // 按钮大小
+  const bigBtnStyle = { fontSize: 20, px: 1, py: 1, minWidth: 90 };
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -516,7 +518,7 @@ export default function PurchaseQuickWeight() {
         >
           <h3 style={{ margin: "0 0 8px 0" }}>过磅记录</h3>
           <div style={{ marginBottom: 12, display: "flex", gap: 12 }}>
-            <Button variant="contained" color="primary" onClick={handleAdd}>
+            <Button variant="contained" color="primary" onClick={handleAdd} sx={bigBtnStyle}>
               新增
             </Button>
             <Button
@@ -524,6 +526,7 @@ export default function PurchaseQuickWeight() {
               color="error"
               onClick={handleDelete}
               disabled={!selectedId}
+              sx={bigBtnStyle}
             >
               删除
             </Button>
@@ -532,6 +535,7 @@ export default function PurchaseQuickWeight() {
               color="success"
               onClick={handleSaveSelected}
               disabled={!selectedId}
+              sx={bigBtnStyle}
             >
               保存
             </Button>
@@ -634,27 +638,34 @@ export default function PurchaseQuickWeight() {
         >
           <h3 style={{ margin: "0 0 8px 0" }}>归档数据</h3>
           <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
+            {/* 开始时间输入框 */}
             <TextField
               label="开始时间"
               type="datetime-local"
               size="small"
               value={filterStart}
               onChange={(e) => setFilterStart(e.target.value)}
-              InputLabelProps={{ shrink: true }}
+              InputLabelProps={{ shrink: true, sx: { fontSize: 20 } }}
+              inputProps={{ style: { fontSize: 20, height: 32 } }}
+              sx={{ minWidth: 220, '.MuiInputBase-root': { height: 48 } }}
             />
+            {/* 结束时间输入框 */}
             <TextField
               label="结束时间"
               type="datetime-local"
               size="small"
               value={filterEnd}
               onChange={(e) => setFilterEnd(e.target.value)}
-              InputLabelProps={{ shrink: true }}
+              InputLabelProps={{ shrink: true, sx: { fontSize: 20 } }}
+              inputProps={{ style: { fontSize: 20, height: 32 } }}
+              sx={{ minWidth: 220, '.MuiInputBase-root': { height: 48 } }}
             />
             <Button
               variant="contained"
               color="warning"
               onClick={handleUnAudit}
               disabled={!selectedArchivedId}
+              sx={bigBtnStyle}
             >
               反审核
             </Button>
