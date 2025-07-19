@@ -27,6 +27,7 @@ const { ipcRenderer } = window.require
 interface RecordItem {
   id: string;
   time: string;
+  supplier: string; // 新增：供应商名称
   item: string;
   maozhong: number | null;
   pizhong: number | null;
@@ -116,6 +117,7 @@ export default function PurchaseQuickWeight() {
       {
         id: genId(),
         time: getTime(),
+        supplier: "散户", // 默认赋值“散户”
         item: "小麦", // 默认为小麦
         maozhong: null,
         pizhong: null,
@@ -132,6 +134,16 @@ export default function PurchaseQuickWeight() {
     if (!selectedId) return;
     const toArchive = records.find(r => r.id === selectedId);
     if (toArchive) {
+      // 校验毛重、皮重、单价必须有值
+      if (
+        toArchive.maozhong === null ||
+        toArchive.pizhong === null ||
+        toArchive.price === null
+      ) {
+        setError("毛重、皮重、单价必须填写！");
+        setOpen(true);
+        return;
+      }
       setArchivedRecords(prev => [...prev, toArchive]);
       setRecords(prev => prev.filter(r => r.id !== selectedId));
       setSelectedId(null);
@@ -354,6 +366,9 @@ export default function PurchaseQuickWeight() {
             break;
           case 'unit':
             updatedRecord.unit = value;
+            break;
+          case 'supplier':
+            updatedRecord.supplier = value;
             break;
         }
         return updatedRecord;
@@ -597,6 +612,7 @@ export default function PurchaseQuickWeight() {
                 <TableRow sx={{ background: "#f5f5f5" }}>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单据号</TableCell>
                   <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>时间</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>供应商名称</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>物品</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>毛重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>皮重</TableCell>
@@ -616,6 +632,19 @@ export default function PurchaseQuickWeight() {
                   >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}> {r.id} </TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}> {r.time} </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
+                      <EditableCell
+                        record={r}
+                        field="supplier"
+                        value={r.supplier}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'supplier'}
+                        onEdit={() => handleCellEdit(r.id, 'supplier', r.supplier)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'supplier', val)}
+                        onKeyPress={handleEditKeyPress}
+                      />
+                    </TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
@@ -732,6 +761,7 @@ export default function PurchaseQuickWeight() {
                 <TableRow sx={{ background: "#f5f5f5" }}>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>单据号</TableCell>
                   <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>时间</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>供应商名称</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>物品</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>毛重</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold" }}>皮重</TableCell>
@@ -753,6 +783,7 @@ export default function PurchaseQuickWeight() {
                   >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.id}</TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.time}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.supplier !== null ? r.supplier : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.item}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
