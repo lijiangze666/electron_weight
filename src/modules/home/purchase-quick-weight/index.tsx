@@ -814,6 +814,56 @@ export default function PurchaseQuickWeight() {
             >
               查询所有
             </Button> */}
+             {/* 添加颜色图例 */}
+          <div style={{ 
+            display: "flex", 
+            gap: 16, 
+            marginBottom: 12, 
+            fontSize: "14px",
+            alignItems: "center"
+          }}>
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 4 
+            }}>
+              <div style={{ 
+                width: 16, 
+                height: 16, 
+                backgroundColor: '#fff8e1', 
+                borderTop: '1px solid #ff9800',
+                borderRight: '1px solid #ff9800',
+                borderBottom: '1px solid #ff9800',
+                borderLeft: '4px solid #ff9800',
+                position: 'relative'
+              }}>
+                <span style={{ 
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-2px',
+                  fontSize: '8px', 
+                  color: '#ff9800',
+                  fontWeight: 'bold'
+                }}>
+                  ●
+                </span>
+              </div>
+              <span style={{ color: '#e65100' }}>未保存</span>
+            </div>
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 4 
+            }}>
+              <div style={{ 
+                width: 16, 
+                height: 16, 
+                backgroundColor: 'white', 
+                border: '1px solid #ddd'
+              }}></div>
+              <span>已保存</span>
+            </div>
+          </div>
           </div>
           <TableContainer
             component={Paper}
@@ -846,6 +896,19 @@ export default function PurchaseQuickWeight() {
                     selected={selectedId === r.id}
                     onClick={e => { e.stopPropagation(); setSelectedId(r.id); }}
                     style={{ cursor: "pointer" }}
+                    sx={{
+                      // 根据数据是否已保存设置不同的背景色
+                      backgroundColor: r.dbId !== undefined ? 'inherit' : '#fff8e1', // 未保存数据为更浅的橙色
+                      '&:hover': {
+                        backgroundColor: r.dbId !== undefined ? undefined : '#ffecb3', // 未保存数据悬停时深一点的橙色
+                      },
+                      // 为未保存数据添加左边框标识
+                      borderLeft: r.dbId !== undefined ? 'none' : '4px solid #ff9800',
+                      // 为未保存数据添加特殊样式
+                      '& .MuiTableCell-root': {
+                        color: r.dbId !== undefined ? 'inherit' : '#e65100', // 未保存数据文字颜色稍深
+                      }
+                    }}
                   >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}> {r.id} </TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}> {r.time} </TableCell>
