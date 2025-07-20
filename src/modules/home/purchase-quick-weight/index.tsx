@@ -1160,7 +1160,7 @@ export default function PurchaseQuickWeight() {
               color="warning"
               onClick={handleUnAudit}
               disabled={!selectedArchivedId}
-              sx={bigBtnStyle}
+              sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
             >
               反审核
             </Button>
@@ -1211,53 +1211,14 @@ export default function PurchaseQuickWeight() {
                   >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}>{r.id}</TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}>{formatTime(r.time)}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
-                      <EditableCell
-                        record={r}
-                        field="supplier"
-                        value={r.supplier}
-                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'supplier'}
-                        onEdit={() => handleArchivedCellEdit(r.id, 'supplier', r.supplier)}
-                        onSave={handleArchivedCellSave}
-                        onCancel={handleArchivedCellCancel}
-                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'supplier', val)}
-                        onKeyPress={handleArchivedEditKeyPress}
-                        trigger="single"
-                      />
-                    </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
-                      <EditableCell
-                        record={r}
-                        field="item"
-                        value={r.item}
-                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'item'}
-                        onEdit={() => handleArchivedCellEdit(r.id, 'item', r.item)}
-                        onSave={handleArchivedCellSave}
-                        onCancel={handleArchivedCellCancel}
-                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'item', val)}
-                        onKeyPress={handleArchivedEditKeyPress}
-                        trigger="single"
-                      />
-                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>{r.supplier}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>{r.item}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>
-                      <EditableCell
-                        record={r}
-                        field="price"
-                        value={r.price}
-                        isEditing={editingArchivedCell?.id === r.id && editingArchivedCell?.field === 'price'}
-                        onEdit={() => handleArchivedCellEdit(r.id, 'price', r.price)}
-                        onSave={handleArchivedCellSave}
-                        onCancel={handleArchivedCellCancel}
-                        onChange={(val) => handleArchivedCellChangeImmediate(r.id, 'price', val)}
-                        onKeyPress={handleArchivedEditKeyPress}
-                        trigger="single"
-                      />
-                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>
-                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#1976d2' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#d32f2f' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
