@@ -47,18 +47,24 @@ app.put('/api/purchase-weight/:billNo', async (req, res) => {
     }
     
     console.log('开始更新数据库记录...');
-    const success = await updateRecord(billNo, record);
+    const result = await updateRecord(billNo, record);
     
-    if (success) {
+    if (typeof result === 'number') {
+      // 插入操作，返回插入ID
+      console.log('插入成功，ID:', result);
+      res.json({ code: 0, msg: '插入成功', data: { id: result } });
+    } else if (result === true) {
+      // 更新操作成功
       console.log('更新成功');
       res.json({ code: 0, msg: '更新成功' });
     } else {
-      console.log('更新失败，记录不存在或已被删除');
-      res.status(404).json({ code: 1, msg: '记录不存在或已被删除' });
+      // 操作失败
+      console.log('操作失败');
+      res.status(404).json({ code: 1, msg: '操作失败' });
     }
   } catch (err) {
     console.error('更新失败:', err);
-    res.status(500).json({ code: 1, msg: '数据库更新失败', error: err.message });
+    res.status(500).json({ code: 1, msg: '数据库操作失败', error: err.message });
   }
 });
 

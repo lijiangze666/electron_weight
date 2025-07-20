@@ -208,6 +208,7 @@ export default function PurchaseQuickWeight() {
             return record;
           }));
         }
+        
         setSuccessMsg(successMessage);
         setOpen(true);
       } else {
@@ -404,7 +405,7 @@ export default function PurchaseQuickWeight() {
 
   // 修正金额计算逻辑：金额 = 单价 * 净重 * 2
   // handlePizhong
-  const handlePizhong = async () => {
+  const handlePizhong = () => {
     if (
       isStable &&
       serialData &&
@@ -427,9 +428,6 @@ export default function PurchaseQuickWeight() {
           return row;
         })
       );
-      
-      // 自动保存数据
-      await autoSaveRecord(selectedId, "皮重已保存！");
     }
   };
 
