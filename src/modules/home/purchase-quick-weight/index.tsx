@@ -28,6 +28,7 @@ const { ipcRenderer } = window.require
 
 interface RecordItem {
   id: string;
+  dbId?: number; // 数据库ID，用于判断是否已保存
   time: string;
   supplier: string; // 新增：供应商名称
   item: string;
@@ -142,8 +143,9 @@ export default function PurchaseQuickWeight() {
       ...records,
       {
         id: genId(),
+        dbId: undefined, // 新增记录没有数据库ID
         time: getTime(),
-        supplier: "散户", // 默认赋值“散户”
+        supplier: "散户", // 默认赋值"散户"
         item: "小麦", // 默认为小麦
         maozhong: null,
         pizhong: null,
@@ -192,6 +194,14 @@ export default function PurchaseQuickWeight() {
         console.log('保存响应:', res.data);
         
         if (res.data.code === 0) {
+          // 保存成功，更新记录的数据库ID
+          setRecords(prev => prev.map(record => {
+            if (record.id === toSave.id) {
+              return { ...record, dbId: res.data.data.id };
+            }
+            return record;
+          }));
+          
           setSuccessMsg("保存成功！");
           setOpen(true);
           setSelectedId(null);
@@ -212,9 +222,24 @@ export default function PurchaseQuickWeight() {
   const handleDelete = () => {
     if (!selectedId) return;
     
-    // 打开确认对话框
-    setDeleteConfirmId(selectedId);
-    setDeleteConfirmOpen(true);
+    // 查找要删除的记录
+    const recordToDelete = records.find(r => r.id === selectedId);
+    if (!recordToDelete) return;
+    
+    // 检查是否已保存（通过检查是否有数据库ID）
+    const isSaved = recordToDelete.dbId !== undefined;
+    
+    if (isSaved) {
+      // 已保存的数据，需要调用后端删除接口
+      setDeleteConfirmId(selectedId);
+      setDeleteConfirmOpen(true);
+    } else {
+      // 未保存的数据，直接从页面删除
+      setRecords(records.filter((r) => r.id !== selectedId));
+      setSelectedId(null);
+      setSuccessMsg("删除成功！");
+      setOpen(true);
+    }
   };
 
   // 确认删除
@@ -264,6 +289,7 @@ export default function PurchaseQuickWeight() {
       if (response.data.code === 0) {
         const allRecords = response.data.data.map((record: any) => ({
           id: record.bill_no,
+          dbId: record.id, // 添加数据库ID
           time: formatTime(record.time),
           supplier: record.supplier,
           item: record.item,
