@@ -36,7 +36,7 @@ async function insertPurchaseWeightRecord(record) {
   }
 }
 
-// 查询所有未删除的记录
+// 查询所有未删除且未归档的记录
 async function getAllActiveRecords() {
   const sql = `
     SELECT 
@@ -51,16 +51,17 @@ async function getAllActiveRecords() {
       unit,
       price,
       amount,
-      is_deleted
+      is_deleted,
+      is_archived
     FROM purchase_weight_records 
-    WHERE is_deleted = 0 
+    WHERE is_deleted = 0 AND is_archived = 0
     ORDER BY time DESC
   `;
   const [rows] = await pool.execute(sql);
   return rows;
 }
 
-// 根据时间范围查询记录
+// 根据时间范围查询记录（未归档）
 async function getRecordsByTimeRange(startTime, endTime) {
   const sql = `
     SELECT 
@@ -75,9 +76,10 @@ async function getRecordsByTimeRange(startTime, endTime) {
       unit,
       price,
       amount,
-      is_deleted
+      is_deleted,
+      is_archived
     FROM purchase_weight_records 
-    WHERE is_deleted = 0 
+    WHERE is_deleted = 0 AND is_archived = 0
     AND time >= ? 
     AND time <= ?
     ORDER BY time DESC
@@ -121,7 +123,8 @@ async function updateRecord(billNo, record) {
         unit = ?,
         price = ?,
         amount = ?,
-        is_deleted = 0
+        is_deleted = 0,
+        is_archived = ?
       WHERE bill_no = ?
     `;
     const values = [
@@ -134,6 +137,7 @@ async function updateRecord(billNo, record) {
       record.unit,
       record.price,
       record.amount,
+      record.is_archived ?? 0,
       billNo
     ];
     
@@ -145,10 +149,36 @@ async function updateRecord(billNo, record) {
   }
 }
 
+// 查询所有已归档的记录
+async function getAllArchivedRecords() {
+  const sql = `
+    SELECT 
+      id,
+      bill_no,
+      time,
+      supplier,
+      item,
+      maozhong,
+      pizhong,
+      jingzhong,
+      unit,
+      price,
+      amount,
+      is_deleted,
+      is_archived
+    FROM purchase_weight_records 
+    WHERE is_deleted = 0 AND is_archived = 1
+    ORDER BY time DESC
+  `;
+  const [rows] = await pool.execute(sql);
+  return rows;
+}
+
 module.exports = { 
   insertPurchaseWeightRecord,
   getAllActiveRecords,
   getRecordsByTimeRange,
   deleteRecord,
-  updateRecord
+  updateRecord,
+  getAllArchivedRecords
 };

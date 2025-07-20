@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord } = require('./purchaseWeightService');
+const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords } = require('./purchaseWeightService');
 
 const app = express();
 const port = 3001;
@@ -113,6 +113,16 @@ app.get('/api/purchase-weight', async (req, res) => {
       msg: '查询成功', 
       data: records 
     });
+  } catch (err) {
+    res.status(500).json({ code: 1, msg: '数据库查询失败', error: err.message });
+  }
+});
+
+// 查询所有已归档的记录
+app.get('/api/purchase-weight-archived', async (req, res) => {
+  try {
+    const records = await getAllArchivedRecords();
+    res.json({ code: 0, msg: '查询成功', data: records });
   } catch (err) {
     res.status(500).json({ code: 1, msg: '数据库查询失败', error: err.message });
   }

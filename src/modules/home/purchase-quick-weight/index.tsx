@@ -38,6 +38,7 @@ interface RecordItem {
   unit: string;
   price: number | null; // 单价
   amount: number;
+  is_archived?: number; // 新增：是否已归档
 }
 
 // 编辑状态接口
@@ -150,9 +151,10 @@ export default function PurchaseQuickWeight() {
         maozhong: null,
         pizhong: null,
         jingzhong: null,
-        unit: "斤",
+        unit: "公斤",
         price: null,
         amount: 0,
+        is_archived: 0
       },
     ]);
   };
@@ -184,7 +186,8 @@ export default function PurchaseQuickWeight() {
         unit: recordToSave.unit,
         price: recordToSave.price,
         amount: recordToSave.amount ? Math.round(recordToSave.amount) : 0,
-        is_deleted: 0
+        is_deleted: 0,
+        is_archived: recordToSave.is_archived ?? 0
       };
       console.log('自动保存数据:', saveData);
       let res;
@@ -208,7 +211,6 @@ export default function PurchaseQuickWeight() {
             return record;
           }));
         }
-        
         setSuccessMsg(successMessage);
         setOpen(true);
       } else {
@@ -374,7 +376,8 @@ export default function PurchaseQuickWeight() {
           jingzhong: record.jingzhong ? Math.round(record.jingzhong) : null,
           unit: record.unit,
           price: record.price,
-          amount: record.amount ? Math.round(record.amount) : 0
+          amount: record.amount ? Math.round(record.amount) : 0,
+          is_archived: record.is_archived
         }));
         setRecords(allRecords); // 将查询到的所有记录显示在上方表格中
         // setSuccessMsg(`查询成功，共找到 ${allRecords.length} 条记录`);
@@ -412,31 +415,27 @@ export default function PurchaseQuickWeight() {
       records.length > 0 &&
       selectedId
     ) {
-      // 先算出新数据
-      let newRecord: RecordItem | undefined;
-      const newRecords = records.map((row) => {
-        if (row.id === selectedId && row.maozhong !== null) {
-          const pizhong = Math.round(Number(serialData));
-          if (pizhong >= row.maozhong) {
-            setError("皮重不能大于等于毛重！");
-            setOpen(true);
-            return row;
-          }
-          const jingzhong = Math.round(row.maozhong - pizhong);
-          const amount = row.price ? Math.round((jingzhong * row.price) * 2) : 0;
-          newRecord = { ...row, pizhong, jingzhong, amount };
-          return newRecord;
-        }
-        return row;
-      });
+      // 找到要归档的那条数据
+      const row = records.find(r => r.id === selectedId && r.maozhong !== null);
+      if (!row || row.maozhong == null) return;
 
-      // 更新页面数据
-      setRecords(newRecords);
-
-      // 用新数据去保存
-      if (selectedId && newRecord) {
-        await autoSaveRecord(selectedId, "皮重已保存！", newRecord);
+      const pizhong = Math.round(Number(serialData));
+      if (pizhong >= row.maozhong) {
+        setError("皮重不能大于等于毛重！");
+        setOpen(true);
+        return;
       }
+      const jingzhong = Math.round(row.maozhong - pizhong);
+      const amount = row.price ? Math.round((jingzhong * row.price) * 2) : 0;
+      const archivedRecord = { ...row, pizhong, jingzhong, amount, is_archived: 1 };
+
+      // 移除上方表格的这条数据
+      setRecords(records.filter(r => r.id !== selectedId));
+
+      // 保存归档数据到数据库
+      await autoSaveRecord(selectedId, "皮重已保存！", archivedRecord);
+      // 刷新下方表格
+      handleQueryArchivedRecords();
     }
   };
 
@@ -828,6 +827,42 @@ export default function PurchaseQuickWeight() {
   };
   // 按钮大小
   const bigBtnStyle = { fontSize: 20, px: 1, py: 1, minWidth: 90 };
+
+  // 查询所有归档记录到下方表格
+  const handleQueryArchivedRecords = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/purchase-weight-archived');
+      if (response.data.code === 0) {
+        const archived = response.data.data.map((record: any) => ({
+          id: record.bill_no,
+          dbId: record.id,
+          time: formatTime(record.time),
+          supplier: record.supplier,
+          item: record.item,
+          maozhong: record.maozhong ? Math.round(record.maozhong) : null,
+          pizhong: record.pizhong ? Math.round(record.pizhong) : null,
+          jingzhong: record.jingzhong ? Math.round(record.jingzhong) : null,
+          unit: record.unit,
+          price: record.price,
+          amount: record.amount ? Math.round(record.amount) : 0,
+          is_archived: record.is_archived
+        }));
+        setArchivedRecords(archived);
+      } else {
+        setError(response.data.msg || '归档查询失败');
+        setOpen(true);
+      }
+    } catch (err) {
+      const errorMsg = (err as any).message || String(err);
+      setError('归档查询失败：' + errorMsg);
+      setOpen(true);
+    }
+  };
+
+  // 页面加载时查询归档数据
+  useEffect(() => {
+    handleQueryArchivedRecords();
+  }, []);
 
   return (
     <div style={{ display: "flex", width: '100%', height: '100%', minHeight: 0 }}>
