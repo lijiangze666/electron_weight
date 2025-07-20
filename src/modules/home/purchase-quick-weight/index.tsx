@@ -158,22 +158,20 @@ export default function PurchaseQuickWeight() {
   };
 
   // 自动保存数据到数据库
-  const autoSaveRecord = async (recordId: string | null, successMessage: string) => {
+  const autoSaveRecord = async (recordId: string | null, successMessage: string, recordOverride?: RecordItem) => {
     if (!recordId) {
       setError("记录ID不能为空");
       setOpen(true);
       return;
     }
-    
     try {
-      // 获取要保存的记录
-      const recordToSave = records.find(r => r.id === recordId);
+      // 优先用传入的新数据
+      const recordToSave = recordOverride ?? records.find(r => r.id === recordId);
       if (!recordToSave) {
         setError("找不到要保存的记录");
         setOpen(true);
         return;
       }
-      
       // 准备保存的数据
       const saveData = {
         bill_no: recordToSave.id,
@@ -188,23 +186,28 @@ export default function PurchaseQuickWeight() {
         amount: recordToSave.amount ? Math.round(recordToSave.amount) : 0,
         is_deleted: 0
       };
-      
       console.log('自动保存数据:', saveData);
-      
-      // 调用后端接口
-      const res = await axios.post("http://localhost:3001/api/purchase-weight", saveData);
-      
+      let res;
+      if (recordToSave.dbId !== undefined) {
+        // 数据已存在，调用更新接口
+        console.log('自动保存：数据已存在，调用更新接口');
+        res = await axios.put(`http://localhost:3001/api/purchase-weight/${recordToSave.id}`, saveData);
+      } else {
+        // 数据不存在，调用插入接口
+        console.log('自动保存：数据不存在，调用插入接口');
+        res = await axios.post("http://localhost:3001/api/purchase-weight", saveData);
+      }
       console.log('自动保存响应:', res.data);
-      
       if (res.data.code === 0) {
-        // 保存成功，更新记录的数据库ID
-        setRecords(prev => prev.map(record => {
-          if (record.id === recordId) {
-            return { ...record, dbId: res.data.data.id };
-          }
-          return record;
-        }));
-        
+        // 保存成功，如果是插入操作，更新记录的数据库ID
+        if (recordToSave.dbId === undefined && res.data.data?.id) {
+          setRecords(prev => prev.map(record => {
+            if (record.id === recordId) {
+              return { ...record, dbId: res.data.data.id };
+            }
+            return record;
+          }));
+        }
         setSuccessMsg(successMessage);
         setOpen(true);
       } else {
@@ -250,21 +253,31 @@ export default function PurchaseQuickWeight() {
         
         console.log('准备保存的数据:', saveData);
         
-        // 调用后端接口
-        const res = await axios.post("http://localhost:3001/api/purchase-weight", saveData);
+        let res;
+        if (toSave.dbId !== undefined) {
+          // 数据已存在，调用更新接口
+          console.log('数据已存在，调用更新接口');
+          res = await axios.put(`http://localhost:3001/api/purchase-weight/${toSave.id}`, saveData);
+        } else {
+          // 数据不存在，调用插入接口
+          console.log('数据不存在，调用插入接口');
+          res = await axios.post("http://localhost:3001/api/purchase-weight", saveData);
+        }
         
         console.log('保存响应:', res.data);
         
         if (res.data.code === 0) {
-          // 保存成功，更新记录的数据库ID
-          setRecords(prev => prev.map(record => {
-            if (record.id === toSave.id) {
-              return { ...record, dbId: res.data.data.id };
-            }
-            return record;
-          }));
+          // 保存成功，如果是插入操作，更新记录的数据库ID
+          if (toSave.dbId === undefined && res.data.data?.id) {
+            setRecords(prev => prev.map(record => {
+              if (record.id === toSave.id) {
+                return { ...record, dbId: res.data.data.id };
+              }
+              return record;
+            }));
+          }
           
-          setSuccessMsg("保存成功！");
+          setSuccessMsg(toSave.dbId !== undefined ? "更新成功！" : "保存成功！");
           setOpen(true);
           setSelectedId(null);
         } else {
@@ -428,33 +441,33 @@ export default function PurchaseQuickWeight() {
       setOpen(true);
       return;
     }
-    
+
     // 限制小数点后两位
     const roundedPrice = Math.round(priceValue * 100) / 100;
-    
-    setRecords((prev) =>
-      prev.map((row) => {
-        if (row.id === selectedId) {
-          // 只更新毛重和单价，金额联动
-          const maozhong = Math.round(Number(serialData));
-          let jingzhong = null;
-          let amount = 0;
-          if (row.pizhong !== null) {
-            jingzhong = Math.round(maozhong - row.pizhong);
-            amount = Math.round((jingzhong * roundedPrice) * 2);
-          }
-          return { ...row, maozhong, price: roundedPrice, jingzhong, amount };
+
+    // 先算出新数据
+    let newRecord: RecordItem | undefined;
+    const newRecords = records.map((row) => {
+      if (row.id === selectedId) {
+        const maozhong = Math.round(Number(serialData));
+        let jingzhong = null;
+        let amount = 0;
+        if (row.pizhong !== null) {
+          jingzhong = Math.round(maozhong - row.pizhong);
+          amount = Math.round((jingzhong * roundedPrice) * 2);
         }
-        return row;
-      })
-    );
-    
-    // 关闭单价输入弹窗
+        newRecord = { ...row, maozhong, price: roundedPrice, jingzhong, amount };
+        return newRecord;
+      }
+      return row;
+    });
+
+    setRecords(newRecords);
     setPriceDialogOpen(false);
-    
-    // 自动保存数据
-    if (selectedId) {
-      await autoSaveRecord(selectedId, "毛重和单价已保存！");
+
+    // 用新数据去保存
+    if (selectedId && newRecord) {
+      await autoSaveRecord(selectedId, "毛重和单价已保存！", newRecord);
     }
   };
 
@@ -876,7 +889,7 @@ export default function PurchaseQuickWeight() {
               disabled={!selectedId}
               sx={bigBtnStyle}
             >
-              保存
+              {selectedId && records.find(r => r.id === selectedId)?.dbId !== undefined ? "更新" : "保存"}
             </Button>
             {/* <Button
               variant="contained"

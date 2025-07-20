@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord } = require('./purchaseWeightService');
+const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord } = require('./purchaseWeightService');
 
 const app = express();
 const port = 3001;
@@ -28,6 +28,37 @@ app.post('/api/purchase-weight', async (req, res) => {
   } catch (err) {
     console.error('保存失败:', err);
     res.status(500).json({ code: 1, msg: '数据库插入失败', error: err.message });
+  }
+});
+
+// 更新采购过磅记录
+app.put('/api/purchase-weight/:billNo', async (req, res) => {
+  try {
+    const { billNo } = req.params;
+    const record = req.body;
+    console.log('收到更新请求，单据号:', billNo, '数据:', record);
+    
+    if (!billNo) {
+      return res.status(400).json({ code: 1, msg: '单据号必填' });
+    }
+    
+    if (!record.time) {
+      return res.status(400).json({ code: 1, msg: '时间必填' });
+    }
+    
+    console.log('开始更新数据库记录...');
+    const success = await updateRecord(billNo, record);
+    
+    if (success) {
+      console.log('更新成功');
+      res.json({ code: 0, msg: '更新成功' });
+    } else {
+      console.log('更新失败，记录不存在或已被删除');
+      res.status(404).json({ code: 1, msg: '记录不存在或已被删除' });
+    }
+  } catch (err) {
+    console.error('更新失败:', err);
+    res.status(500).json({ code: 1, msg: '数据库更新失败', error: err.message });
   }
 });
 

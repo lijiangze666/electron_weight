@@ -97,9 +97,44 @@ async function deleteRecord(billNo) {
   return result.affectedRows > 0;
 }
 
+// 更新记录
+async function updateRecord(billNo, record) {
+  const sql = `
+    UPDATE purchase_weight_records 
+    SET 
+      time = ?,
+      supplier = ?,
+      item = ?,
+      maozhong = ?,
+      pizhong = ?,
+      jingzhong = ?,
+      unit = ?,
+      price = ?,
+      amount = ?
+    WHERE bill_no = ? AND is_deleted = 0
+  `;
+  const values = [
+    record.time,
+    record.supplier,
+    record.item,
+    record.maozhong,
+    record.pizhong,
+    record.jingzhong,
+    record.unit,
+    record.price,
+    record.amount,
+    billNo
+  ];
+  
+  console.log('更新SQL参数:', values);
+  const [result] = await pool.execute(sql, values);
+  return result.affectedRows > 0;
+}
+
 module.exports = { 
   insertPurchaseWeightRecord,
   getAllActiveRecords,
   getRecordsByTimeRange,
-  deleteRecord
+  deleteRecord,
+  updateRecord
 };
