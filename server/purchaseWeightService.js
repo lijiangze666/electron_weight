@@ -86,8 +86,20 @@ async function getRecordsByTimeRange(startTime, endTime) {
   return rows;
 }
 
+// 删除记录（软删除，设置is_deleted为1）
+async function deleteRecord(billNo) {
+  const sql = `
+    UPDATE purchase_weight_records 
+    SET is_deleted = 1 
+    WHERE bill_no = ?
+  `;
+  const [result] = await pool.execute(sql, [billNo]);
+  return result.affectedRows > 0;
+}
+
 module.exports = { 
   insertPurchaseWeightRecord,
   getAllActiveRecords,
-  getRecordsByTimeRange
+  getRecordsByTimeRange,
+  deleteRecord
 };

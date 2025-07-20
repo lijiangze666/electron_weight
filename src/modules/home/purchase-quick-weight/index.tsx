@@ -15,6 +15,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
 import TableFooter from "@mui/material/TableFooter";
+import Typography from "@mui/material/Typography";
 import dayjs from "dayjs";
 import Checkbox from "@mui/material/Checkbox";
 import Select from "@mui/material/Select";
@@ -72,6 +73,9 @@ export default function PurchaseQuickWeight() {
   const [selectedArchivedIds, setSelectedArchivedIds] = useState<string[]>([]);
   // 新增成功提示状态
   const [successMsg, setSuccessMsg] = useState("");
+  // 删除确认对话框状态
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     ipcRenderer.send("open-serialport");
@@ -206,10 +210,51 @@ export default function PurchaseQuickWeight() {
 
   // 删除选中行
   const handleDelete = () => {
-    if (selectedId) {
-      setRecords(records.filter((r) => r.id !== selectedId));
-      setSelectedId(null);
+    if (!selectedId) return;
+    
+    // 打开确认对话框
+    setDeleteConfirmId(selectedId);
+    setDeleteConfirmOpen(true);
+  };
+
+  // 确认删除
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    
+    try {
+      console.log('准备删除记录，单据号:', deleteConfirmId);
+      
+      // 调用后端删除接口
+      const response = await axios.delete(`http://localhost:3001/api/purchase-weight/${deleteConfirmId}`);
+      
+      console.log('删除响应:', response.data);
+      
+      if (response.data.code === 0) {
+        // 删除成功，从本地状态中移除
+        setRecords(records.filter((r) => r.id !== deleteConfirmId));
+        setSelectedId(null);
+        setSuccessMsg("删除成功！");
+        setOpen(true);
+      } else {
+        setError(response.data.msg || "删除失败！");
+        setOpen(true);
+      }
+    } catch (err) {
+      console.error('删除错误详情:', err);
+      const errorMsg = (err as any).message || String(err);
+      setError("删除失败：" + errorMsg);
+      setOpen(true);
+    } finally {
+      // 关闭确认对话框
+      setDeleteConfirmOpen(false);
+      setDeleteConfirmId(null);
     }
+  };
+
+  // 取消删除
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setDeleteConfirmId(null);
   };
 
   // 查询所有记录到上方表格
@@ -1096,6 +1141,28 @@ export default function PurchaseQuickWeight() {
           <Button onClick={() => setPriceDialogOpen(false)}>取消</Button>
           <Button onClick={handlePriceConfirm} variant="contained">
             确定
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* 删除确认对话框 */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleCancelDelete}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">确认删除</DialogTitle>
+        <DialogContent>
+          <Typography id="delete-dialog-description">
+            您确定要删除此条记录吗？此操作不可逆。
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color="primary">
+            取消
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            删除
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange } = require('./purchaseWeightService');
+const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord } = require('./purchaseWeightService');
 
 const app = express();
 const port = 3001;
@@ -28,6 +28,32 @@ app.post('/api/purchase-weight', async (req, res) => {
   } catch (err) {
     console.error('保存失败:', err);
     res.status(500).json({ code: 1, msg: '数据库插入失败', error: err.message });
+  }
+});
+
+// 删除采购过磅记录
+app.delete('/api/purchase-weight/:billNo', async (req, res) => {
+  try {
+    const { billNo } = req.params;
+    console.log('收到删除请求，单据号:', billNo);
+    
+    if (!billNo) {
+      return res.status(400).json({ code: 1, msg: '单据号必填' });
+    }
+    
+    console.log('开始删除数据库记录...');
+    const success = await deleteRecord(billNo);
+    
+    if (success) {
+      console.log('删除成功');
+      res.json({ code: 0, msg: '删除成功' });
+    } else {
+      console.log('删除失败，记录不存在');
+      res.status(404).json({ code: 1, msg: '记录不存在' });
+    }
+  } catch (err) {
+    console.error('删除失败:', err);
+    res.status(500).json({ code: 1, msg: '数据库删除失败', error: err.message });
   }
 });
 
