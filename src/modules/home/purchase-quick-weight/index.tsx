@@ -1317,8 +1317,18 @@ export default function PurchaseQuickWeight() {
         </div>
       </div>
       {/* 单价输入弹窗 */}
-      <Dialog open={priceDialogOpen} onClose={() => setPriceDialogOpen(false)}>
-        <DialogTitle>请输入单价</DialogTitle>
+      <Dialog open={priceDialogOpen} onClose={() => setPriceDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            boxShadow: 6,
+            minWidth: 380,
+            background: 'linear-gradient(90deg, #e3eafc 0%, #fff 100%)',
+            p: 2
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#1976d2', fontWeight: 800, fontSize: 22, letterSpacing: 1, textAlign: 'center', pb: 1 }}>请输入单价</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -1334,18 +1344,28 @@ export default function PurchaseQuickWeight() {
                 setInputPrice(value);
               }
             }}
-            inputProps={{ 
-              min: 0, 
+            inputProps={{
+              min: 0,
               step: 0.01,
-              pattern: "\\d*\\.?\\d{0,2}"
+              pattern: "\\d*\\.?\\d{0,2}",
+              style: { fontSize: 22, padding: '14px 12px', borderRadius: 8 }
+            }}
+            sx={{
+              mt: 2,
+              mb: 1,
+              '& .MuiInputBase-root': {
+                borderRadius: 2,
+                fontSize: 22,
+              },
+              '& label': {
+                fontSize: 18,
+              }
             }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPriceDialogOpen(false)}>取消</Button>
-          <Button onClick={handlePriceConfirm} variant="contained">
-            确定
-          </Button>
+        <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
+          <Button onClick={() => setPriceDialogOpen(false)} sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5 }}>取消</Button>
+          <Button onClick={handlePriceConfirm} variant="contained" sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5, fontWeight: 700 }}>确定</Button>
         </DialogActions>
       </Dialog>
       {/* 删除确认对话框 */}
