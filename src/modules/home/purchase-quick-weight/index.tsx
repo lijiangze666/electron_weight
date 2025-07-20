@@ -405,29 +405,38 @@ export default function PurchaseQuickWeight() {
 
   // 修正金额计算逻辑：金额 = 单价 * 净重 * 2
   // handlePizhong
-  const handlePizhong = () => {
+  const handlePizhong = async () => {
     if (
       isStable &&
       serialData &&
       records.length > 0 &&
       selectedId
     ) {
-      setRecords((prev) =>
-        prev.map((row) => {
-          if (row.id === selectedId && row.maozhong !== null) {
-            const pizhong = Math.round(Number(serialData));
-            if (pizhong >= row.maozhong) {
-              setError("皮重不能大于等于毛重！");
-              setOpen(true);
-              return row;
-            }
-            const jingzhong = Math.round(row.maozhong - pizhong);
-            const amount = row.price ? Math.round((jingzhong * row.price) * 2) : 0;
-            return { ...row, pizhong, jingzhong, amount };
+      // 先算出新数据
+      let newRecord: RecordItem | undefined;
+      const newRecords = records.map((row) => {
+        if (row.id === selectedId && row.maozhong !== null) {
+          const pizhong = Math.round(Number(serialData));
+          if (pizhong >= row.maozhong) {
+            setError("皮重不能大于等于毛重！");
+            setOpen(true);
+            return row;
           }
-          return row;
-        })
-      );
+          const jingzhong = Math.round(row.maozhong - pizhong);
+          const amount = row.price ? Math.round((jingzhong * row.price) * 2) : 0;
+          newRecord = { ...row, pizhong, jingzhong, amount };
+          return newRecord;
+        }
+        return row;
+      });
+
+      // 更新页面数据
+      setRecords(newRecords);
+
+      // 用新数据去保存
+      if (selectedId && newRecord) {
+        await autoSaveRecord(selectedId, "皮重已保存！", newRecord);
+      }
     }
   };
 
