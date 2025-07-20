@@ -2,6 +2,7 @@ import React from "react";
 import { Tabs, Tab, Box, Typography, Paper } from "@mui/material";
 import PurchaseQuickWeight from "./purchase-quick-weight";
 import SystemSettings from "./system-settings";
+import HomeMain from "./home-main";
 
 export default function HomePage() {
   const [tab, setTab] = React.useState(0);
@@ -54,14 +55,7 @@ export default function HomePage() {
           backgroundColor: "#f5f5f5",
         }}
       >
-        {tab === 0 && (
-          <Paper sx={{ p: 1, height: "100%" }}>
-            <Typography variant="h5" gutterBottom>
-              首页内容
-            </Typography>
-            {/* 这里添加首页的具体内容 */}
-          </Paper>
-        )}
+        {tab === 0 && <HomeMain />}
         {tab === 1 && <PurchaseQuickWeight />}
         {tab === 2 && <SystemSettings />}
       </Box>
