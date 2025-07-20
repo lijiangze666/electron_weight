@@ -75,6 +75,7 @@ function createLoginWindow() {
     center: true, // 窗口在屏幕中居中显示
     autoHideMenuBar: true, // 自动隐藏窗口的菜单栏
     frame: true, // 显示窗口的边框和标题栏
+    icon: path.join(__dirname, 'logo.ico'), // 设置窗口图标
     webPreferences: {
       // 网页功能的配置项
       nodeIntegration: true, // 允许在渲染进程中使用 Node.js API
@@ -160,6 +161,7 @@ function createMainWindow() {
     autoHideMenuBar: true, // 自动隐藏窗口的菜单栏
     frame: true, // 显示窗口的边框和标题栏
     show: false, // 初始时不显示窗口，等待内容加载完成
+    icon: path.join(__dirname, 'logo.ico'), // 设置窗口图标
     webPreferences: {
       // 网页功能的配置项
       nodeIntegration: true, // 允许在渲染进程中使用 Node.js API

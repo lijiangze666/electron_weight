@@ -62,6 +62,8 @@ function createLoginWindow() {
     // 自动隐藏窗口的菜单栏
     frame: true,
     // 显示窗口的边框和标题栏
+    icon: path.join(__dirname, "logo.ico"),
+    // 设置窗口图标
     webPreferences: {
       // 网页功能的配置项
       nodeIntegration: true,
@@ -130,6 +132,8 @@ function createMainWindow() {
     // 显示窗口的边框和标题栏
     show: false,
     // 初始时不显示窗口，等待内容加载完成
+    icon: path.join(__dirname, "logo.ico"),
+    // 设置窗口图标
     webPreferences: {
       // 网页功能的配置项
       nodeIntegration: true,
