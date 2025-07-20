@@ -24,4 +24,58 @@ async function insertPurchaseWeightRecord(record) {
   return result.insertId;
 }
 
-module.exports = { insertPurchaseWeightRecord };
+// 查询所有未删除的记录
+async function getAllActiveRecords() {
+  const sql = `
+    SELECT 
+      id,
+      bill_no,
+      time,
+      supplier,
+      item,
+      maozhong,
+      pizhong,
+      jingzhong,
+      unit,
+      price,
+      amount,
+      is_deleted
+    FROM purchase_weight_records 
+    WHERE is_deleted = 0 
+    ORDER BY time DESC
+  `;
+  const [rows] = await pool.execute(sql);
+  return rows;
+}
+
+// 根据时间范围查询记录
+async function getRecordsByTimeRange(startTime, endTime) {
+  const sql = `
+    SELECT 
+      id,
+      bill_no,
+      time,
+      supplier,
+      item,
+      maozhong,
+      pizhong,
+      jingzhong,
+      unit,
+      price,
+      amount,
+      is_deleted
+    FROM purchase_weight_records 
+    WHERE is_deleted = 0 
+    AND time >= ? 
+    AND time <= ?
+    ORDER BY time DESC
+  `;
+  const [rows] = await pool.execute(sql, [startTime, endTime]);
+  return rows;
+}
+
+module.exports = { 
+  insertPurchaseWeightRecord,
+  getAllActiveRecords,
+  getRecordsByTimeRange
+};

@@ -88,6 +88,10 @@ export default function PurchaseQuickWeight() {
       }
     };
     ipcRenderer.on("serialport-data", handler);
+    
+    // 页面加载时默认查询所有数据到上方表格
+    handleQueryAllRecords();
+    
     return () => {
       ipcRenderer.removeListener("serialport-data", handler);
     };
@@ -181,6 +185,37 @@ export default function PurchaseQuickWeight() {
     if (selectedId) {
       setRecords(records.filter((r) => r.id !== selectedId));
       setSelectedId(null);
+    }
+  };
+
+  // 查询所有记录到上方表格
+  const handleQueryAllRecords = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/purchase-weight');
+      if (response.data.code === 0) {
+        const allRecords = response.data.data.map((record: any) => ({
+          id: record.bill_no,
+          time: record.time,
+          supplier: record.supplier,
+          item: record.item,
+          maozhong: record.maozhong,
+          pizhong: record.pizhong,
+          jingzhong: record.jingzhong,
+          unit: record.unit,
+          price: record.price,
+          amount: record.amount
+        }));
+        setRecords(allRecords); // 将查询到的所有记录显示在上方表格中
+        // setSuccessMsg(`查询成功，共找到 ${allRecords.length} 条记录`);
+        // setOpen(true);
+      } else {
+        setError(response.data.msg || '查询失败');
+        setOpen(true);
+      }
+    } catch (err) {
+      const errorMsg = (err as any).message || String(err);
+      setError('查询失败：' + errorMsg);
+      setOpen(true);
     }
   };
 
@@ -631,6 +666,14 @@ export default function PurchaseQuickWeight() {
             >
               保存
             </Button>
+            {/* <Button
+              variant="contained"
+              color="info"
+              onClick={handleQueryAllRecords}
+              sx={bigBtnStyle}
+            >
+              查询所有
+            </Button> */}
           </div>
           <TableContainer
             component={Paper}
