@@ -157,6 +157,68 @@ export default function PurchaseQuickWeight() {
     ]);
   };
 
+  // 自动保存数据到数据库
+  const autoSaveRecord = async (recordId: string | null, successMessage: string) => {
+    if (!recordId) {
+      setError("记录ID不能为空");
+      setOpen(true);
+      return;
+    }
+    
+    try {
+      // 获取要保存的记录
+      const recordToSave = records.find(r => r.id === recordId);
+      if (!recordToSave) {
+        setError("找不到要保存的记录");
+        setOpen(true);
+        return;
+      }
+      
+      // 准备保存的数据
+      const saveData = {
+        bill_no: recordToSave.id,
+        time: recordToSave.time,
+        supplier: recordToSave.supplier,
+        item: recordToSave.item,
+        maozhong: recordToSave.maozhong ? Math.round(recordToSave.maozhong) : null,
+        pizhong: recordToSave.pizhong ? Math.round(recordToSave.pizhong) : null,
+        jingzhong: recordToSave.jingzhong ? Math.round(recordToSave.jingzhong) : null,
+        unit: recordToSave.unit,
+        price: recordToSave.price,
+        amount: recordToSave.amount ? Math.round(recordToSave.amount) : 0,
+        is_deleted: 0
+      };
+      
+      console.log('自动保存数据:', saveData);
+      
+      // 调用后端接口
+      const res = await axios.post("http://localhost:3001/api/purchase-weight", saveData);
+      
+      console.log('自动保存响应:', res.data);
+      
+      if (res.data.code === 0) {
+        // 保存成功，更新记录的数据库ID
+        setRecords(prev => prev.map(record => {
+          if (record.id === recordId) {
+            return { ...record, dbId: res.data.data.id };
+          }
+          return record;
+        }));
+        
+        setSuccessMsg(successMessage);
+        setOpen(true);
+      } else {
+        setError(res.data.msg || "自动保存失败！");
+        setOpen(true);
+      }
+    } catch (err) {
+      console.error('自动保存错误详情:', err);
+      const errorMsg = (err as any).message || String(err);
+      setError("自动保存失败：" + errorMsg);
+      setOpen(true);
+    }
+  };
+
   // 保存选中行到归档
   const handleSaveSelected = async () => {
     if (!selectedId) return;
@@ -329,7 +391,7 @@ export default function PurchaseQuickWeight() {
 
   // 修正金额计算逻辑：金额 = 单价 * 净重 * 2
   // handlePizhong
-  const handlePizhong = () => {
+  const handlePizhong = async () => {
     if (
       isStable &&
       serialData &&
@@ -352,11 +414,14 @@ export default function PurchaseQuickWeight() {
           return row;
         })
       );
+      
+      // 自动保存数据
+      await autoSaveRecord(selectedId, "皮重已保存！");
     }
   };
 
   // 确认输入单价
-  const handlePriceConfirm = () => {
+  const handlePriceConfirm = async () => {
     const priceValue = parseFloat(inputPrice);
     if (isNaN(priceValue) || priceValue <= 0) {
       setError("请输入有效的单价");
@@ -383,7 +448,14 @@ export default function PurchaseQuickWeight() {
         return row;
       })
     );
+    
+    // 关闭单价输入弹窗
     setPriceDialogOpen(false);
+    
+    // 自动保存数据
+    if (selectedId) {
+      await autoSaveRecord(selectedId, "毛重和单价已保存！");
+    }
   };
 
   // 汇总计算
