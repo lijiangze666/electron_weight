@@ -910,7 +910,11 @@ export default function PurchaseQuickWeight() {
             flexDirection: "column",
           }}
         >
-          <h3 style={{ margin: "0 0 8px 0" }}>过磅记录</h3>
+          {/* 过磅记录标题美化 */}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '0 0 8px 0' }}>
+            <div style={{ width: 6, height: 28, background: 'linear-gradient(180deg, #1976d2 60%, #64b5f6 100%)', borderRadius: 3, marginRight: 10 }} />
+            <h3 style={{ margin: 0, fontSize: 26, color: '#1976d2', fontWeight: 900, letterSpacing: 1 }}>过磅记录</h3>
+          </div>
           <div style={{ marginBottom: 12, display: "flex", gap: 12 }}>
             <Button variant="contained" color="primary" onClick={handleAdd} sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}>
               新增
@@ -1131,7 +1135,11 @@ export default function PurchaseQuickWeight() {
             flexDirection: "column",
           }}
         >
-          <h3 style={{ margin: "0 0 8px 0" }}>归档数据</h3>
+          {/* 归档数据标题美化 */}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '0 0 8px 0' }}>
+            <div style={{ width: 6, height: 28, background: 'linear-gradient(180deg, #388e3c 60%, #a5d6a7 100%)', borderRadius: 3, marginRight: 10 }} />
+            <h3 style={{ margin: 0, fontSize: 26, color: '#388e3c', fontWeight: 900, letterSpacing: 1 }}>归档数据</h3>
+          </div>
           <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
             {/* 开始时间输入框 */}
             <TextField
