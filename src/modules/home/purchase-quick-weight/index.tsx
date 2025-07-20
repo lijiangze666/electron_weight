@@ -99,6 +99,21 @@ export default function PurchaseQuickWeight() {
 
   // 生成随机单据号
   const genId = () => Math.random().toString(36).slice(2, 10).toUpperCase();
+  
+  // 格式化时间为 yyyy-MM-dd HH:mm:ss
+  const formatTime = (time: any) => {
+    if (!time) return '';
+    const date = new Date(time);
+    if (isNaN(date.getTime())) return time; // 如果转换失败，返回原值
+    
+    return date.getFullYear() + '-' + 
+      String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(date.getDate()).padStart(2, '0') + ' ' + 
+      String(date.getHours()).padStart(2, '0') + ':' + 
+      String(date.getMinutes()).padStart(2, '0') + ':' + 
+      String(date.getSeconds()).padStart(2, '0');
+  };
+  
   // 获取当前时间字符串
   const getTime = () => {
     const d = new Date();
@@ -150,20 +165,28 @@ export default function PurchaseQuickWeight() {
         return;
       }
       try {
-        // 调用后端接口
-        const res = await axios.post("http://localhost:3001/api/purchase-weight", {
+        // 准备保存的数据
+        const saveData = {
           bill_no: toSave.id,
           time: toSave.time,
           supplier: toSave.supplier,
           item: toSave.item,
-          maozhong: toSave.maozhong,
-          pizhong: toSave.pizhong,
-          jingzhong: toSave.jingzhong,
+          maozhong: toSave.maozhong ? Math.round(toSave.maozhong) : null,
+          pizhong: toSave.pizhong ? Math.round(toSave.pizhong) : null,
+          jingzhong: toSave.jingzhong ? Math.round(toSave.jingzhong) : null,
           unit: toSave.unit,
           price: toSave.price,
-          amount: toSave.amount,
+          amount: toSave.amount ? Math.round(toSave.amount) : 0,
           is_deleted: 0
-        });
+        };
+        
+        console.log('准备保存的数据:', saveData);
+        
+        // 调用后端接口
+        const res = await axios.post("http://localhost:3001/api/purchase-weight", saveData);
+        
+        console.log('保存响应:', res.data);
+        
         if (res.data.code === 0) {
           setSuccessMsg("保存成功！");
           setOpen(true);
@@ -173,6 +196,7 @@ export default function PurchaseQuickWeight() {
           setOpen(true);
         }
       } catch (err) {
+        console.error('保存错误详情:', err);
         const errorMsg = (err as any).message || String(err);
         setError("保存失败：" + errorMsg);
         setOpen(true);
@@ -195,15 +219,15 @@ export default function PurchaseQuickWeight() {
       if (response.data.code === 0) {
         const allRecords = response.data.data.map((record: any) => ({
           id: record.bill_no,
-          time: record.time,
+          time: formatTime(record.time),
           supplier: record.supplier,
           item: record.item,
-          maozhong: record.maozhong,
-          pizhong: record.pizhong,
-          jingzhong: record.jingzhong,
+          maozhong: record.maozhong ? Math.round(record.maozhong) : null,
+          pizhong: record.pizhong ? Math.round(record.pizhong) : null,
+          jingzhong: record.jingzhong ? Math.round(record.jingzhong) : null,
           unit: record.unit,
           price: record.price,
-          amount: record.amount
+          amount: record.amount ? Math.round(record.amount) : 0
         }));
         setRecords(allRecords); // 将查询到的所有记录显示在上方表格中
         // setSuccessMsg(`查询成功，共找到 ${allRecords.length} 条记录`);
@@ -244,14 +268,14 @@ export default function PurchaseQuickWeight() {
       setRecords((prev) =>
         prev.map((row) => {
           if (row.id === selectedId && row.maozhong !== null) {
-            const pizhong = Number(serialData);
+            const pizhong = Math.round(Number(serialData));
             if (pizhong >= row.maozhong) {
               setError("皮重不能大于等于毛重！");
               setOpen(true);
               return row;
             }
-            const jingzhong = row.maozhong - pizhong;
-            const amount = row.price ? (jingzhong * row.price) * 2 : 0;
+            const jingzhong = Math.round(row.maozhong - pizhong);
+            const amount = row.price ? Math.round((jingzhong * row.price) * 2) : 0;
             return { ...row, pizhong, jingzhong, amount };
           }
           return row;
@@ -268,18 +292,22 @@ export default function PurchaseQuickWeight() {
       setOpen(true);
       return;
     }
+    
+    // 限制小数点后两位
+    const roundedPrice = Math.round(priceValue * 100) / 100;
+    
     setRecords((prev) =>
       prev.map((row) => {
         if (row.id === selectedId) {
           // 只更新毛重和单价，金额联动
-          const maozhong = Number(serialData);
+          const maozhong = Math.round(Number(serialData));
           let jingzhong = null;
           let amount = 0;
           if (row.pizhong !== null) {
-            jingzhong = maozhong - row.pizhong;
-            amount = (jingzhong * priceValue) * 2;
+            jingzhong = Math.round(maozhong - row.pizhong);
+            amount = Math.round((jingzhong * roundedPrice) * 2);
           }
-          return { ...row, maozhong, price: priceValue, jingzhong, amount };
+          return { ...row, maozhong, price: roundedPrice, jingzhong, amount };
         }
         return row;
       })
@@ -288,11 +316,11 @@ export default function PurchaseQuickWeight() {
   };
 
   // 汇总计算
-  const totalJingzhong = records.reduce(
+  const totalJingzhong = Math.round(records.reduce(
     (sum, r) => sum + (r.jingzhong || 0),
     0
-  );
-  const totalAmount = records.reduce((sum, r) => sum + (r.amount || 0), 0);
+  ));
+  const totalAmount = Math.round(records.reduce((sum, r) => sum + (r.amount || 0), 0));
 
   // 归档表格筛选逻辑
   const filteredArchived = archivedRecords.filter((r) => {
@@ -302,14 +330,14 @@ export default function PurchaseQuickWeight() {
   });
 
   // 归档表格统计
-  const totalArchivedJingzhong = filteredArchived.reduce(
+  const totalArchivedJingzhong = Math.round(filteredArchived.reduce(
     (sum, r) => sum + (r.jingzhong || 0),
     0
-  );
-  const totalArchivedAmount = filteredArchived.reduce(
+  ));
+  const totalArchivedAmount = Math.round(filteredArchived.reduce(
     (sum, r) => sum + (r.amount || 0),
     0
-  );
+  ));
 
   // 开始编辑单元格
   const handleCellEdit = (id: string, field: string, currentValue: any) => {
@@ -391,7 +419,7 @@ export default function PurchaseQuickWeight() {
             updatedRecord.item = value;
             break;
           case 'maozhong': {
-            const maozhong = parseFloat(value);
+            const maozhong = Math.round(parseFloat(value));
             if (updatedRecord.pizhong !== null && !isNaN(maozhong) && maozhong <= updatedRecord.pizhong) {
               setError("毛重必须大于皮重！");
               setOpen(true);
@@ -399,13 +427,13 @@ export default function PurchaseQuickWeight() {
             }
             updatedRecord.maozhong = isNaN(maozhong) ? null : maozhong;
             if (updatedRecord.pizhong !== null && updatedRecord.maozhong !== null) {
-              updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
-              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price * 2 : 0;
+              updatedRecord.jingzhong = Math.round(updatedRecord.maozhong - updatedRecord.pizhong);
+              updatedRecord.amount = updatedRecord.price ? Math.round(updatedRecord.jingzhong * updatedRecord.price * 2) : 0;
             }
             break;
           }
           case 'pizhong': {
-            const pizhong = parseFloat(value);
+            const pizhong = Math.round(parseFloat(value));
             if (updatedRecord.maozhong !== null && !isNaN(pizhong) && pizhong >= updatedRecord.maozhong) {
               setError("皮重不能大于等于毛重！");
               setOpen(true);
@@ -413,14 +441,15 @@ export default function PurchaseQuickWeight() {
             }
             updatedRecord.pizhong = isNaN(pizhong) ? null : pizhong;
             if (updatedRecord.maozhong !== null && updatedRecord.pizhong !== null) {
-              updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
-              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price * 2 : 0;
+              updatedRecord.jingzhong = Math.round(updatedRecord.maozhong - updatedRecord.pizhong);
+              updatedRecord.amount = updatedRecord.price ? Math.round(updatedRecord.jingzhong * updatedRecord.price * 2) : 0;
             }
             break;
           }
           case 'price':
             const price = parseFloat(value);
-            updatedRecord.price = isNaN(price) ? null : price;
+            const roundedPrice = isNaN(price) ? null : Math.round(price * 100) / 100;
+            updatedRecord.price = roundedPrice;
             if (updatedRecord.jingzhong !== null && updatedRecord.price !== null) {
               updatedRecord.amount = updatedRecord.jingzhong * updatedRecord.price * 2;
             }
@@ -448,24 +477,25 @@ export default function PurchaseQuickWeight() {
             updatedRecord.item = value;
             break;
           case 'maozhong':
-            const maozhong = parseFloat(value);
+            const maozhong = Math.round(parseFloat(value));
             updatedRecord.maozhong = isNaN(maozhong) ? null : maozhong;
             if (updatedRecord.pizhong !== null && updatedRecord.maozhong !== null) {
-              updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
-              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price * 2 : 0;
+              updatedRecord.jingzhong = Math.round(updatedRecord.maozhong - updatedRecord.pizhong);
+              updatedRecord.amount = updatedRecord.price ? Math.round(updatedRecord.jingzhong * updatedRecord.price * 2) : 0;
             }
             break;
           case 'pizhong':
-            const pizhong = parseFloat(value);
+            const pizhong = Math.round(parseFloat(value));
             updatedRecord.pizhong = isNaN(pizhong) ? null : pizhong;
             if (updatedRecord.maozhong !== null && updatedRecord.pizhong !== null) {
-              updatedRecord.jingzhong = updatedRecord.maozhong - updatedRecord.pizhong;
-              updatedRecord.amount = updatedRecord.price ? updatedRecord.jingzhong * updatedRecord.price * 2 : 0;
+              updatedRecord.jingzhong = Math.round(updatedRecord.maozhong - updatedRecord.pizhong);
+              updatedRecord.amount = updatedRecord.price ? Math.round(updatedRecord.jingzhong * updatedRecord.price * 2) : 0;
             }
             break;
           case 'price':
             const price = parseFloat(value);
-            updatedRecord.price = isNaN(price) ? null : price;
+            const roundedPrice = isNaN(price) ? null : Math.round(price * 100) / 100;
+            updatedRecord.price = roundedPrice;
             if (updatedRecord.jingzhong !== null && updatedRecord.price !== null) {
               updatedRecord.amount = updatedRecord.jingzhong * updatedRecord.price * 2;
             }
@@ -540,6 +570,45 @@ export default function PurchaseQuickWeight() {
           </Select>
         );
       }
+      
+      // 为单价字段添加特殊处理
+      if (field === 'price') {
+        return (
+          <TextField
+            value={localValue ?? ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              // 限制只能输入数字和一个小数点，且小数点后最多两位
+              if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
+                setLocalValue(value);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSave();
+              } else if (e.key === 'Escape') {
+                handleCancel();
+              }
+            }}
+            onBlur={handleSave}
+            autoFocus
+            size="small"
+            type="number"
+            inputProps={{
+              step: 0.01,
+              pattern: "\\d*\\.?\\d{0,2}"
+            }}
+            sx={{
+              '& .MuiInputBase-input': {
+                fontSize: '20px',
+                textAlign: 'center',
+                padding: '4px 8px'
+              }
+            }}
+          />
+        );
+      }
+      
       return (
         <TextField
           value={localValue ?? ""}
@@ -765,7 +834,9 @@ export default function PurchaseQuickWeight() {
                         trigger="double"
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700 }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700 }}>
+                      {r.jingzhong !== null ? Math.round(r.jingzhong) : ""}
+                    </TableCell>
                     <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
@@ -780,7 +851,9 @@ export default function PurchaseQuickWeight() {
                         trigger="double"
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700 }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700 }}>
+                      {r.amount ? Math.round(r.amount) : ""}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -864,7 +937,7 @@ export default function PurchaseQuickWeight() {
                     sx={{ height: 52 }}
                   >
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.id}</TableCell>
-                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.time}</TableCell>
+                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{formatTime(r.time)}</TableCell>
                     <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>
                       <EditableCell
                         record={r}
@@ -1005,8 +1078,18 @@ export default function PurchaseQuickWeight() {
             type="number"
             fullWidth
             value={inputPrice}
-            onChange={(e) => setInputPrice(e.target.value)}
-            inputProps={{ min: 0, step: 0.01 }}
+            onChange={(e) => {
+              const value = e.target.value;
+              // 限制只能输入数字和一个小数点，且小数点后最多两位
+              if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
+                setInputPrice(value);
+              }
+            }}
+            inputProps={{ 
+              min: 0, 
+              step: 0.01,
+              pattern: "\\d*\\.?\\d{0,2}"
+            }}
           />
         </DialogContent>
         <DialogActions>
