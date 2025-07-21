@@ -885,8 +885,8 @@ export default function PurchaseQuickWeight() {
   return (
     <Box
       sx={{
-        width: '100vw',
-        height: '100vh',
+        width: '100%',
+        height: '100%',
         minHeight: 0,
         minWidth: 0,
         display: 'flex',
@@ -930,13 +930,14 @@ export default function PurchaseQuickWeight() {
         }}
       >
         {/* 上方：过磅记录表格 */}
-        <div
-          style={{
+        <Box
+          sx={{
             flex: 1,
             minHeight: 0,
-            marginBottom: 16,
-            display: "flex",
-            flexDirection: "column",
+            mb: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
           {/* 过磅记录标题美化 */}
@@ -1033,8 +1034,8 @@ export default function PurchaseQuickWeight() {
               borderRadius: 3,
               flex: 1,
               minHeight: 0,
-              overflowY: "auto",
-              mb: 2,
+              maxHeight: '100%',
+              overflow: 'visible',
             }}
           >
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
@@ -1154,14 +1155,15 @@ export default function PurchaseQuickWeight() {
               </TableBody>
             </Table>
           </TableContainer>
-        </div>
+        </Box>
         {/* 下方：归档/统计/查询表格 */}
-        <div
-          style={{
-            flex: 1,
+        <Box
+          sx={{
+            flex: 1.4,
             minHeight: 0,
-            display: "flex",
-            flexDirection: "column",
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
           {/* 归档数据标题美化 */}
@@ -1208,23 +1210,23 @@ export default function PurchaseQuickWeight() {
               borderRadius: 3,
               flex: 1,
               minHeight: 0,
-              overflowY: "auto",
-              mb: 2,
+              maxHeight: '100%',
+              overflow: 'visible',
             }}
           >
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow sx={{ background: "linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)", boxShadow: 1 }}>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
-                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
+                  <TableCell sx={{ width: '13%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
+                  <TableCell sx={{ width: '13%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>物品</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/公斤</TableCell>
-                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>金额</TableCell>
+                  <TableCell sx={{ width: '7%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>物品</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/公斤</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>金额</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1289,7 +1291,7 @@ export default function PurchaseQuickWeight() {
               <span style={{ color: '#d32f2f', fontSize: 18, fontWeight: 700 }}>元</span>
             </span>
           </div>
-        </div>
+        </Box>
       </Box>
       {/* 右侧：数字显示和操作区 */}
       <Box
