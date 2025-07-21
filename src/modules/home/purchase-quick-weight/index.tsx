@@ -21,6 +21,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import axios from "axios";
+import Box from "@mui/material/Box";
 
 const { ipcRenderer } = window.require
   ? window.require("electron")
@@ -882,558 +883,554 @@ export default function PurchaseQuickWeight() {
   }, []);
 
   return (
-    <div
-      style={{
-        width: DESIGN_WIDTH,
-        height: DESIGN_HEIGHT,
-        transform: `scale(${scale})`,
-        transformOrigin: "top left",
-        background: "#f5f7fa",
-        overflow: "auto",
-        position: "relative",
+    <Box
+      sx={{
+        width: '100vw',
+        height: '100vh',
+        minHeight: 0,
+        minWidth: 0,
+        display: 'flex',
+        background: '#f5f7fa',
+        overflow: 'hidden',
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          width: DESIGN_WIDTH,
-          height: DESIGN_HEIGHT,
-          minHeight: 0,
+      {/* 错误提示 */}
+      <Snackbar
+        open={open}
+        autoHideDuration={3000}
+        onClose={() => setOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => {
+            setOpen(false);
+            setSuccessMsg("");
+            setError("");
+          }}
+          severity={successMsg ? "success" : "error"}
+          sx={{ width: "100%" }}
+        >
+          {(successMsg || error) as string}
+        </Alert>
+      </Snackbar>
+      {/* 左侧：上下两个表格 */}
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          p: { xs: 1, md: 2 },
+          overflow: 'hidden',
+        }}
+        onClick={() => {
+          setSelectedId(null);
+          setSelectedArchivedId && setSelectedArchivedId(null);
         }}
       >
-        {/* 错误提示 */}
-        <Snackbar
-          open={open}
-          autoHideDuration={3000}
-          onClose={() => setOpen(false)}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        >
-          <Alert
-            onClose={() => {
-              setOpen(false);
-              setSuccessMsg("");
-              setError("");
-            }}
-            severity={successMsg ? "success" : "error"}
-            sx={{ width: "100%" }}
-          >
-            {(successMsg || error) as string}
-          </Alert>
-        </Snackbar>
-        {/* 左侧：上下两个表格 */}
+        {/* 上方：过磅记录表格 */}
         <div
           style={{
             flex: 1,
+            minHeight: 0,
+            marginBottom: 16,
             display: "flex",
             flexDirection: "column",
-            padding: 10,
-            overflow: "hidden",
-            minHeight: 0, // 确保flex子元素可以收缩
-          }}
-          onClick={() => {
-            setSelectedId(null);
-            setSelectedArchivedId && setSelectedArchivedId(null);
           }}
         >
-          {/* 上方：过磅记录表格 */}
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              marginBottom: 16,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {/* 过磅记录标题美化 */}
-            <div style={{ display: 'flex', alignItems: 'center', margin: '0 0 8px 0' }}>
-              <div style={{ width: 6, height: 28, background: 'linear-gradient(180deg, #1976d2 60%, #64b5f6 100%)', borderRadius: 3, marginRight: 10 }} />
-              <h3 style={{ margin: 0, fontSize: 26, color: '#1976d2', fontWeight: 900, letterSpacing: 1 }}>过磅记录</h3>
-            </div>
-            <div style={{ marginBottom: 12, display: "flex", gap: 12 }}>
-              <Button variant="contained" color="primary" onClick={handleAdd} sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}>
-                新增
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={handleDelete}
-                disabled={!selectedId}
-                sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 1, fontWeight: 700 }}
-              >
-                删除
-              </Button>
-              <Button
-                variant="contained"
-                color="success"
-                onClick={handleSaveSelected}
-                disabled={!selectedId}
-                sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
-              >
-                {selectedId && records.find(r => r.id === selectedId)?.dbId !== undefined ? "更新" : "保存"}
-              </Button>
-              {/* <Button
-                variant="contained"
-                color="info"
-                onClick={handleQueryAllRecords}
-                sx={bigBtnStyle}
-              >
-                查询所有
-              </Button> */}
-               {/* 添加颜色图例 */}
-            <div style={{ 
-              display: "flex", 
-              gap: 16, 
-              marginBottom: 12, 
-              fontSize: "14px",
-              alignItems: "center"
-            }}>
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 4 
-              }}>
-                <div style={{ 
-                  width: 16, 
-                  height: 16, 
-                  backgroundColor: '#fff8e1', 
-                  borderTop: '1px solid #ff9800',
-                  borderRight: '1px solid #ff9800',
-                  borderBottom: '1px solid #ff9800',
-                  borderLeft: '4px solid #ff9800',
-                  position: 'relative'
-                }}>
-                  <span style={{ 
-                    position: 'absolute',
-                    top: '-2px',
-                    right: '-2px',
-                    fontSize: '8px', 
-                    color: '#ff9800',
-                    fontWeight: 'bold'
-                  }}>
-                    ●
-                  </span>
-                </div>
-                <span style={{ color: '#e65100' }}>未保存</span>
-              </div>
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 4 
-              }}>
-                <div style={{ 
-                  width: 16, 
-                  height: 16, 
-                  backgroundColor: 'white', 
-                  border: '1px solid #ddd'
-                }}></div>
-                <span>已保存</span>
-              </div>
-            </div>
-            </div>
-            {/* 1. 表格美化 */}
-            <TableContainer
-              component={Paper}
-              sx={{
-                boxShadow: 4,
-                borderRadius: 3,
-                flex: 1,
-                minHeight: 0,
-                overflowY: "auto",
-                mb: 2,
-              }}
-            >
-              <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
-                <TableHead>
-                  <TableRow sx={{ background: "linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)", boxShadow: 1 }}>
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
-                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>物品</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>金额</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {records.map((r) => (
-                    <TableRow
-                      key={r.id}
-                      hover
-                      selected={selectedId === r.id}
-                      onClick={e => { e.stopPropagation(); setSelectedId(r.id); }}
-                      style={{ cursor: "pointer" }}
-                      sx={{
-                        backgroundColor: selectedId === r.id ? '#e3f2fd' : (r.dbId !== undefined ? 'inherit' : '#fff8e1'),
-                        '&:hover': {
-                          backgroundColor: selectedId === r.id ? '#bbdefb' : (r.dbId !== undefined ? '#f5f5f5' : '#ffecb3'),
-                        },
-                        borderLeft: r.dbId !== undefined ? 'none' : '4px solid #ff9800',
-                        '& .MuiTableCell-root': {
-                          color: r.dbId !== undefined ? (selectedId === r.id ? '#1976d2' : 'inherit') : '#e65100',
-                          fontWeight: selectedId === r.id ? 700 : 400,
-                        }
-                      }}
-                    >
-                      <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}> {r.id} </TableCell>
-                      <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}> {r.time} </TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
-                        <EditableCell
-                          record={r}
-                          field="supplier"
-                          value={r.supplier}
-                          isEditing={editingCell?.id === r.id && editingCell?.field === 'supplier'}
-                          onEdit={() => handleCellEdit(r.id, 'supplier', r.supplier)}
-                          onSave={handleCellSave}
-                          onCancel={handleCellCancel}
-                          onChange={(val) => handleCellChangeImmediate(r.id, 'supplier', val)}
-                          onKeyPress={handleEditKeyPress}
-                          trigger="double"
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
-                        <EditableCell
-                          record={r}
-                          field="item"
-                          value={r.item}
-                          isEditing={editingCell?.id === r.id && editingCell?.field === 'item'}
-                          onEdit={() => handleCellEdit(r.id, 'item', r.item)}
-                          onSave={handleCellSave}
-                          onCancel={handleCellCancel}
-                          onChange={(val) => handleCellChangeImmediate(r.id, 'item', val)}
-                          onKeyPress={handleEditKeyPress}
-                          trigger="double"
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
-                        <EditableCell
-                          record={r}
-                          field="maozhong"
-                          value={r.maozhong}
-                          isEditing={editingCell?.id === r.id && editingCell?.field === 'maozhong'}
-                          onEdit={() => handleCellEdit(r.id, 'maozhong', r.maozhong)}
-                          onSave={handleCellSave}
-                          onCancel={handleCellCancel}
-                          onChange={(val) => handleCellChangeImmediate(r.id, 'maozhong', val)}
-                          onKeyPress={handleEditKeyPress}
-                          trigger="double"
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
-                        <EditableCell
-                          record={r}
-                          field="pizhong"
-                          value={r.pizhong}
-                          isEditing={editingCell?.id === r.id && editingCell?.field === 'pizhong'}
-                          onEdit={() => handleCellEdit(r.id, 'pizhong', r.pizhong)}
-                          onSave={handleCellSave}
-                          onCancel={handleCellCancel}
-                          onChange={(val) => handleCellChangeImmediate(r.id, 'pizhong', val)}
-                          onKeyPress={handleEditKeyPress}
-                          trigger="double"
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>
-                        {r.jingzhong !== null ? Math.round(r.jingzhong) : ""}
-                      </TableCell>
-                      <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "20px" }}>
-                        <EditableCell
-                          record={r}
-                          field="price"
-                          value={r.price}
-                          isEditing={editingCell?.id === r.id && editingCell?.field === 'price'}
-                          onEdit={() => handleCellEdit(r.id, 'price', r.price)}
-                          onSave={handleCellSave}
-                          onCancel={handleCellCancel}
-                          onChange={(val) => handleCellChangeImmediate(r.id, 'price', val)}
-                          onKeyPress={handleEditKeyPress}
-                          trigger="double"
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#d32f2f' }}>
-                        {r.amount ? Math.round(r.amount) : ""}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+          {/* 过磅记录标题美化 */}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '0 0 8px 0' }}>
+            <div style={{ width: 6, height: 28, background: 'linear-gradient(180deg, #1976d2 60%, #64b5f6 100%)', borderRadius: 3, marginRight: 10 }} />
+            <h3 style={{ margin: 0, fontSize: 26, color: '#1976d2', fontWeight: 900, letterSpacing: 1 }}>过磅记录</h3>
           </div>
-          {/* 下方：归档/统计/查询表格 */}
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {/* 归档数据标题美化 */}
-            <div style={{ display: 'flex', alignItems: 'center', margin: '0 0 8px 0' }}>
-              <div style={{ width: 6, height: 28, background: 'linear-gradient(180deg, #388e3c 60%, #a5d6a7 100%)', borderRadius: 3, marginRight: 10 }} />
-              <h3 style={{ margin: 0, fontSize: 26, color: '#388e3c', fontWeight: 900, letterSpacing: 1 }}>归档数据</h3>
-            </div>
-            <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
-              {/* 开始时间输入框 */}
-              <TextField
-                label="开始时间"
-                type="datetime-local"
-                size="small"
-                value={filterStart}
-                onChange={(e) => setFilterStart(e.target.value)}
-                InputLabelProps={{ shrink: true, sx: { fontSize: 20 } }}
-                inputProps={{ style: { fontSize: 20, height: 32 } }}
-                sx={{ minWidth: 220, '.MuiInputBase-root': { height: 48 } }}
-              />
-              {/* 结束时间输入框 */}
-              <TextField
-                label="结束时间"
-                type="datetime-local"
-                size="small"
-                value={filterEnd}
-                onChange={(e) => setFilterEnd(e.target.value)}
-                InputLabelProps={{ shrink: true, sx: { fontSize: 20 } }}
-                inputProps={{ style: { fontSize: 20, height: 32 } }}
-                sx={{ minWidth: 220, '.MuiInputBase-root': { height: 48 } }}
-              />
-              <Button
-                variant="contained"
-                color="warning"
-                onClick={handleUnAudit}
-                disabled={!selectedArchivedId}
-                sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
-              >
-                反审核
-              </Button>
-            </div>
-            <TableContainer
-              component={Paper} sx={{
-                boxShadow: 4,
-                borderRadius: 3,
-                flex: 1,
-                minHeight: 0,
-                overflowY: "auto",
-                mb: 2,
-              }}
-            >
-              <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
-                <TableHead>
-                  <TableRow sx={{ background: "linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)", boxShadow: 1 }}>
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
-                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>物品</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/公斤</TableCell>
-                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>金额</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredArchived.map((r) => (
-                    <TableRow
-                      key={r.id}
-                      hover
-                      selected={selectedArchivedId === r.id}
-                      onClick={e => { e.stopPropagation(); setSelectedArchivedId(r.id); }}
-                      style={{ cursor: "pointer" }}
-                      sx={{
-                        backgroundColor: selectedArchivedId === r.id ? '#e3f2fd' : 'inherit',
-                        '&:hover': {
-                          backgroundColor: selectedArchivedId === r.id ? '#bbdefb' : '#f5f5f5',
-                        },
-                        '& .MuiTableCell-root': {
-                          color: selectedArchivedId === r.id ? '#1976d2' : '#1976d2',
-                          fontWeight: selectedArchivedId === r.id ? 700 : 400,
-                        }
-                      }}
-                    >
-                      <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}>{r.id}</TableCell>
-                      <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}>{formatTime(r.time)}</TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>{r.supplier}</TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>{r.item}</TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price}</TableCell>
-                      <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>
-                      <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#d32f2f' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            {/* 4. 合计栏美化（下方归档区） */}
-            <div style={{
-              width: '100%',
-              background: 'linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)',
-              border: 'none',
-              borderRadius: 12,
-              boxShadow: '0 2px 12px 0 #b3c6e0',
-              padding: '22px 0',
-              fontSize: 22,
-              fontWeight: 800,
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: 80,
-              marginBottom: 18,
-              marginTop: 8,
-            }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: '#1976d2', fontSize: 26, fontWeight: 900 }}>合计净重：</span>
-                <span style={{ color: '#1976d2', fontSize: 28, fontWeight: 900 }}>{totalArchivedJingzhong.toFixed(1)}</span>
-                <span style={{ color: '#1976d2', fontSize: 18, fontWeight: 700 }}>公斤</span>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: '#d32f2f', fontSize: 26, fontWeight: 900 }}>合计金额：</span>
-                <span style={{ color: '#d32f2f', fontSize: 28, fontWeight: 900 }}>{Math.round(totalArchivedAmount)}</span>
-                <span style={{ color: '#d32f2f', fontSize: 18, fontWeight: 700 }}>元</span>
-              </span>
-            </div>
-          </div>
-        </div>
-        {/* 右侧：数字显示和操作区 */}
-        <div
-          style={{
-            width: 455,
-            padding: 15,
-            borderLeft: "1px solid #eee",
-            boxSizing: "border-box",
-            height: "100%",
-            overflow: "hidden",
-            background: "linear-gradient(135deg, #e3eafc 0%, #f5f7fa 100%)",
-            borderRadius: 16,
-            boxShadow: '0 4px 24px 0 #b3c6e0',
-          }}
-        >
-          <div
-            style={{
-              background: "#000",
-              color: isStable ? "#00e676" : "#ff2d2d",
-              fontWeight: isStable ? 900 : 400,
-              fontFamily:
-                "'Share Tech Mono', 'Orbitron', 'Consolas', 'monospace'",
-              fontSize: 80,
-              padding: "16px 32px",
-              borderRadius: 16,
-              textAlign: "center",
-              marginBottom: 32,
-              letterSpacing: 2,
-              border: "2px solid #222",
-              minWidth: 320,
-              minHeight: 110,
-              userSelect: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: serialData ? 1 : 0.3,
-              transition: "color 0.3s, font-weight 0.3s",
-              boxShadow: '0 2px 16px 0 #b3c6e0',
-            }}
-          >
-            {serialData || <span>--</span>}
-          </div>
-          <div style={{ display: "flex", gap: 24, marginBottom: 32 }}>
+          <div style={{ marginBottom: 12, display: "flex", gap: 12 }}>
+            <Button variant="contained" color="primary" onClick={handleAdd} sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}>
+              新增
+            </Button>
             <Button
-              variant="contained"
+              variant="outlined"
               color="error"
-              onClick={handleMaozhong}
-              sx={{ fontSize: 26, px: 8, py: 3, minWidth: 140, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
+              onClick={handleDelete}
               disabled={!selectedId}
+              sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 1, fontWeight: 700 }}
             >
-              毛重
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handlePizhong}
-              sx={{ fontSize: 26, px: 8, py: 3, minWidth: 140, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
-              disabled={!selectedId}
-            >
-              皮重
-            </Button>
-          </div>
-        </div>
-        {/* 单价输入弹窗 */}
-        <Dialog open={priceDialogOpen} onClose={() => setPriceDialogOpen(false)}
-          PaperProps={{
-            sx: {
-              borderRadius: 4,
-              boxShadow: 6,
-              minWidth: 380,
-              background: 'linear-gradient(90deg, #e3eafc 0%, #fff 100%)',
-              p: 2
-            }
-          }}
-        >
-          <DialogTitle sx={{ color: '#1976d2', fontWeight: 800, fontSize: 22, letterSpacing: 1, textAlign: 'center', pb: 1 }}>请输入单价</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="单价 (元/斤)"
-              type="number"
-              fullWidth
-              value={inputPrice}
-              onChange={(e) => {
-                const value = e.target.value;
-                // 限制只能输入数字和一个小数点，且小数点后最多两位
-                if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
-                  setInputPrice(value);
-                }
-              }}
-              inputProps={{
-                min: 0,
-                step: 0.01,
-                pattern: "\\d*\\.?\\d{0,2}",
-                style: { fontSize: 22, padding: '14px 12px', borderRadius: 8 }
-              }}
-              sx={{
-                mt: 2,
-                mb: 1,
-                '& .MuiInputBase-root': {
-                  borderRadius: 2,
-                  fontSize: 22,
-                },
-                '& label': {
-                  fontSize: 18,
-                }
-              }}
-            />
-          </DialogContent>
-          <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
-            <Button onClick={() => setPriceDialogOpen(false)} sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5 }}>取消</Button>
-            <Button onClick={handlePriceConfirm} variant="contained" sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5, fontWeight: 700 }}>确定</Button>
-          </DialogActions>
-        </Dialog>
-        {/* 删除确认对话框 */}
-        <Dialog
-          open={deleteConfirmOpen}
-          onClose={handleCancelDelete}
-          aria-labelledby="delete-dialog-title"
-          aria-describedby="delete-dialog-description"
-        >
-          <DialogTitle id="delete-dialog-title">确认删除</DialogTitle>
-          <DialogContent>
-            <Typography id="delete-dialog-description">
-              您确定要删除此条记录吗？此操作不可逆。
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCancelDelete} color="primary">
-              取消
-            </Button>
-            <Button onClick={handleConfirmDelete} color="error" variant="contained">
               删除
             </Button>
-          </DialogActions>
-        </Dialog>
-      </div> {/* 主内容flex容器闭合 */}
-    </div> 
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleSaveSelected}
+              disabled={!selectedId}
+              sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
+            >
+              {selectedId && records.find(r => r.id === selectedId)?.dbId !== undefined ? "更新" : "保存"}
+            </Button>
+            {/* <Button
+              variant="contained"
+              color="info"
+              onClick={handleQueryAllRecords}
+              sx={bigBtnStyle}
+            >
+              查询所有
+            </Button> */}
+             {/* 添加颜色图例 */}
+          <div style={{ 
+            display: "flex", 
+            gap: 16, 
+            marginBottom: 12, 
+            fontSize: "14px",
+            alignItems: "center"
+          }}>
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 4 
+            }}>
+              <div style={{ 
+                width: 16, 
+                height: 16, 
+                backgroundColor: '#fff8e1', 
+                borderTop: '1px solid #ff9800',
+                borderRight: '1px solid #ff9800',
+                borderBottom: '1px solid #ff9800',
+                borderLeft: '4px solid #ff9800',
+                position: 'relative'
+              }}>
+                <span style={{ 
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-2px',
+                  fontSize: '8px', 
+                  color: '#ff9800',
+                  fontWeight: 'bold'
+                }}>
+                  ●
+                </span>
+              </div>
+              <span style={{ color: '#e65100' }}>未保存</span>
+            </div>
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 4 
+            }}>
+              <div style={{ 
+                width: 16, 
+                height: 16, 
+                backgroundColor: 'white', 
+                border: '1px solid #ddd'
+              }}></div>
+              <span>已保存</span>
+            </div>
+          </div>
+          </div>
+          {/* 1. 表格美化 */}
+          <TableContainer
+            component={Paper}
+            sx={{
+              boxShadow: 4,
+              borderRadius: 3,
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              mb: 2,
+            }}
+          >
+            <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
+              <TableHead>
+                <TableRow sx={{ background: "linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)", boxShadow: 1 }}>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
+                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>物品</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>金额</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {records.map((r) => (
+                  <TableRow
+                    key={r.id}
+                    hover
+                    selected={selectedId === r.id}
+                    onClick={e => { e.stopPropagation(); setSelectedId(r.id); }}
+                    style={{ cursor: "pointer" }}
+                    sx={{
+                      backgroundColor: selectedId === r.id ? '#e3f2fd' : (r.dbId !== undefined ? 'inherit' : '#fff8e1'),
+                      '&:hover': {
+                        backgroundColor: selectedId === r.id ? '#bbdefb' : (r.dbId !== undefined ? '#f5f5f5' : '#ffecb3'),
+                      },
+                      borderLeft: r.dbId !== undefined ? 'none' : '4px solid #ff9800',
+                      '& .MuiTableCell-root': {
+                        color: r.dbId !== undefined ? (selectedId === r.id ? '#1976d2' : 'inherit') : '#e65100',
+                        fontWeight: selectedId === r.id ? 700 : 400,
+                      }
+                    }}
+                  >
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}> {r.id} </TableCell>
+                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}> {r.time} </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
+                      <EditableCell
+                        record={r}
+                        field="supplier"
+                        value={r.supplier}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'supplier'}
+                        onEdit={() => handleCellEdit(r.id, 'supplier', r.supplier)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'supplier', val)}
+                        onKeyPress={handleEditKeyPress}
+                        trigger="double"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
+                      <EditableCell
+                        record={r}
+                        field="item"
+                        value={r.item}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'item'}
+                        onEdit={() => handleCellEdit(r.id, 'item', r.item)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'item', val)}
+                        onKeyPress={handleEditKeyPress}
+                        trigger="double"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
+                      <EditableCell
+                        record={r}
+                        field="maozhong"
+                        value={r.maozhong}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'maozhong'}
+                        onEdit={() => handleCellEdit(r.id, 'maozhong', r.maozhong)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'maozhong', val)}
+                        onKeyPress={handleEditKeyPress}
+                        trigger="double"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
+                      <EditableCell
+                        record={r}
+                        field="pizhong"
+                        value={r.pizhong}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'pizhong'}
+                        onEdit={() => handleCellEdit(r.id, 'pizhong', r.pizhong)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'pizhong', val)}
+                        onKeyPress={handleEditKeyPress}
+                        trigger="double"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>
+                      {r.jingzhong !== null ? Math.round(r.jingzhong) : ""}
+                    </TableCell>
+                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "20px" }}>
+                      <EditableCell
+                        record={r}
+                        field="price"
+                        value={r.price}
+                        isEditing={editingCell?.id === r.id && editingCell?.field === 'price'}
+                        onEdit={() => handleCellEdit(r.id, 'price', r.price)}
+                        onSave={handleCellSave}
+                        onCancel={handleCellCancel}
+                        onChange={(val) => handleCellChangeImmediate(r.id, 'price', val)}
+                        onKeyPress={handleEditKeyPress}
+                        trigger="double"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#d32f2f' }}>
+                      {r.amount ? Math.round(r.amount) : ""}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </div>
+        {/* 下方：归档/统计/查询表格 */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* 归档数据标题美化 */}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '0 0 8px 0' }}>
+            <div style={{ width: 6, height: 28, background: 'linear-gradient(180deg, #388e3c 60%, #a5d6a7 100%)', borderRadius: 3, marginRight: 10 }} />
+            <h3 style={{ margin: 0, fontSize: 26, color: '#388e3c', fontWeight: 900, letterSpacing: 1 }}>归档数据</h3>
+          </div>
+          <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
+            {/* 开始时间输入框 */}
+            <TextField
+              label="开始时间"
+              type="datetime-local"
+              size="small"
+              value={filterStart}
+              onChange={(e) => setFilterStart(e.target.value)}
+              InputLabelProps={{ shrink: true, sx: { fontSize: 20 } }}
+              inputProps={{ style: { fontSize: 20, height: 32 } }}
+              sx={{ minWidth: 220, '.MuiInputBase-root': { height: 48 } }}
+            />
+            {/* 结束时间输入框 */}
+            <TextField
+              label="结束时间"
+              type="datetime-local"
+              size="small"
+              value={filterEnd}
+              onChange={(e) => setFilterEnd(e.target.value)}
+              InputLabelProps={{ shrink: true, sx: { fontSize: 20 } }}
+              inputProps={{ style: { fontSize: 20, height: 32 } }}
+              sx={{ minWidth: 220, '.MuiInputBase-root': { height: 48 } }}
+            />
+            <Button
+              variant="contained"
+              color="warning"
+              onClick={handleUnAudit}
+              disabled={!selectedArchivedId}
+              sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
+            >
+              反审核
+            </Button>
+          </div>
+          <TableContainer
+            component={Paper} sx={{
+              boxShadow: 4,
+              borderRadius: 3,
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              mb: 2,
+            }}
+          >
+            <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
+              <TableHead>
+                <TableRow sx={{ background: "linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)", boxShadow: 1 }}>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
+                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>物品</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/公斤</TableCell>
+                  <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>金额</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredArchived.map((r) => (
+                  <TableRow
+                    key={r.id}
+                    hover
+                    selected={selectedArchivedId === r.id}
+                    onClick={e => { e.stopPropagation(); setSelectedArchivedId(r.id); }}
+                    style={{ cursor: "pointer" }}
+                    sx={{
+                      backgroundColor: selectedArchivedId === r.id ? '#e3f2fd' : 'inherit',
+                      '&:hover': {
+                        backgroundColor: selectedArchivedId === r.id ? '#bbdefb' : '#f5f5f5',
+                      },
+                      '& .MuiTableCell-root': {
+                        color: selectedArchivedId === r.id ? '#1976d2' : '#1976d2',
+                        fontWeight: selectedArchivedId === r.id ? 700 : 400,
+                      }
+                    }}
+                  >
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}>{r.id}</TableCell>
+                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}>{formatTime(r.time)}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>{r.supplier}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>{r.item}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price}</TableCell>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>
+                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#d32f2f' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          {/* 4. 合计栏美化（下方归档区） */}
+          <div style={{
+            width: '100%',
+            background: 'linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)',
+            border: 'none',
+            borderRadius: 12,
+            boxShadow: '0 2px 12px 0 #b3c6e0',
+            padding: '22px 0',
+            fontSize: 22,
+            fontWeight: 800,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 80,
+            marginBottom: 18,
+            marginTop: 8,
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#1976d2', fontSize: 26, fontWeight: 900 }}>合计净重：</span>
+              <span style={{ color: '#1976d2', fontSize: 28, fontWeight: 900 }}>{totalArchivedJingzhong.toFixed(1)}</span>
+              <span style={{ color: '#1976d2', fontSize: 18, fontWeight: 700 }}>公斤</span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#d32f2f', fontSize: 26, fontWeight: 900 }}>合计金额：</span>
+              <span style={{ color: '#d32f2f', fontSize: 28, fontWeight: 900 }}>{Math.round(totalArchivedAmount)}</span>
+              <span style={{ color: '#d32f2f', fontSize: 18, fontWeight: 700 }}>元</span>
+            </span>
+          </div>
+        </div>
+      </Box>
+      {/* 右侧：数字显示和操作区 */}
+      <Box
+        sx={{
+          width: { xs: '100%', md: 455 },
+          minWidth: 320,
+          maxWidth: 600,
+          height: '100%',
+          p: { xs: 1, md: 2 },
+          borderLeft: '1px solid #eee',
+          background: 'linear-gradient(135deg, #e3eafc 0%, #f5f7fa 100%)',
+          borderRadius: { xs: 0, md: 3 },
+          boxShadow: { md: '0 4px 24px 0 #b3c6e0' },
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            background: "#000",
+            color: isStable ? "#00e676" : "#ff2d2d",
+            fontWeight: isStable ? 900 : 400,
+            fontFamily:
+              "'Share Tech Mono', 'Orbitron', 'Consolas', 'monospace'",
+            fontSize: 80,
+            padding: "16px 32px",
+            borderRadius: 16,
+            textAlign: "center",
+            marginBottom: 32,
+            letterSpacing: 2,
+            border: "2px solid #222",
+            minWidth: 320,
+            minHeight: 110,
+            userSelect: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: serialData ? 1 : 0.3,
+            transition: "color 0.3s, font-weight 0.3s",
+            boxShadow: '0 2px 16px 0 #b3c6e0',
+          }}
+        >
+          {serialData || <span>--</span>}
+        </div>
+        <div style={{ display: "flex", gap: 24, marginBottom: 32 }}>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleMaozhong}
+            sx={{ fontSize: 26, px: 8, py: 3, minWidth: 140, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
+            disabled={!selectedId}
+          >
+            毛重
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handlePizhong}
+            sx={{ fontSize: 26, px: 8, py: 3, minWidth: 140, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
+            disabled={!selectedId}
+          >
+            皮重
+          </Button>
+        </div>
+      </Box>
+      {/* 单价输入弹窗 */}
+      <Dialog open={priceDialogOpen} onClose={() => setPriceDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            boxShadow: 6,
+            minWidth: 380,
+            background: 'linear-gradient(90deg, #e3eafc 0%, #fff 100%)',
+            p: 2
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#1976d2', fontWeight: 800, fontSize: 22, letterSpacing: 1, textAlign: 'center', pb: 1 }}>请输入单价</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="单价 (元/斤)"
+            type="number"
+            fullWidth
+            value={inputPrice}
+            onChange={(e) => {
+              const value = e.target.value;
+              // 限制只能输入数字和一个小数点，且小数点后最多两位
+              if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
+                setInputPrice(value);
+              }
+            }}
+            inputProps={{
+              min: 0,
+              step: 0.01,
+              pattern: "\\d*\\.?\\d{0,2}",
+              style: { fontSize: 22, padding: '14px 12px', borderRadius: 8 }
+            }}
+            sx={{
+              mt: 2,
+              mb: 1,
+              '& .MuiInputBase-root': {
+                borderRadius: 2,
+                fontSize: 22,
+              },
+              '& label': {
+                fontSize: 18,
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
+          <Button onClick={() => setPriceDialogOpen(false)} sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5 }}>取消</Button>
+          <Button onClick={handlePriceConfirm} variant="contained" sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5, fontWeight: 700 }}>确定</Button>
+        </DialogActions>
+      </Dialog>
+      {/* 删除确认对话框 */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleCancelDelete}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">确认删除</DialogTitle>
+        <DialogContent>
+          <Typography id="delete-dialog-description">
+            您确定要删除此条记录吗？此操作不可逆。
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color="primary">
+            取消
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            删除
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
