@@ -1211,7 +1211,7 @@ export default function PurchaseQuickWeight() {
               flex: 1,
               minHeight: 0,
               maxHeight: '100%',
-              overflow: 'visible',
+              overflowY: 'auto',
             }}
           >
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
