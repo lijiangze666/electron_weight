@@ -45,6 +45,36 @@ ipcMain.on("open-serialport", (event) => {
     console.log("串口已打开");
   });
 });
+let rfidPort = null;
+function startRFIDSerial() {
+  if (rfidPort && rfidPort.isOpen) return;
+  rfidPort = new SerialPort({ path: "COM3", baudRate: 115200, autoOpen: false }, (err) => {
+    if (err) {
+      console.error("RFID串口打开失败:", err.message);
+      return;
+    }
+  });
+  rfidPort.on("data", (data) => {
+    const cardId = data.toString().trim();
+    console.log("RFID读到卡号:", cardId);
+    BrowserWindow.getAllWindows().forEach((win) => {
+      win.webContents.send("rfid-data", cardId);
+    });
+  });
+  rfidPort.on("error", (err) => {
+    console.error("RFID串口错误:", err.message);
+  });
+  rfidPort.open((err) => {
+    if (err) {
+      console.error("RFID串口打开失败:", err.message);
+      return;
+    }
+    console.log("RFID串口已打开");
+  });
+}
+app.whenReady().then(() => {
+  startRFIDSerial();
+});
 let mainWindow = null;
 function createLoginWindow() {
   const win = new BrowserWindow({
