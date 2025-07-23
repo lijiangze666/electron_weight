@@ -7,6 +7,7 @@ const menuItems = [
   { key: "role", label: "权限设置" },
   { key: "base", label: "基础配置" },
   { key: "db", label: "数据库连接配置" },
+  { key: "card", label: "一卡通设置" },
 ];
 
 function DbConfigForm() {
@@ -48,6 +49,10 @@ function DbConfigForm() {
   );
 }
 
+function CardSetting() {
+  return <Typography>这里是卡设置内容</Typography>;
+}
+
 export default function SystemSettings() {
   const [selected, setSelected] = React.useState("user");
 
@@ -61,6 +66,8 @@ export default function SystemSettings() {
         return <Typography>这里是基础配置内容</Typography>;
       case "db":
         return <DbConfigForm />;
+      case "card":
+        return <CardSetting />;
       default:
         return null;
     }
