@@ -103,9 +103,26 @@ export default function PurchaseQuickWeight() {
     
     // 页面加载时默认查询所有数据到上方表格
     handleQueryAllRecords();
+
+    // 新增：全局监听RFID读卡事件，刷卡即新增
+    const rfidHandler = (_event: any, cardId: string) => {
+      // 刷卡-新增-毛重 连贯动作
+      const newId = handleAdd();
+      setSelectedId(newId);
+      // 刷卡后直接弹出单价输入框
+      setPriceDialogOpen(true);
+      setInputPrice("");
+    };
+    if (ipcRenderer) {
+      ipcRenderer.on("rfid-data", rfidHandler);
+    }
     
     return () => {
       ipcRenderer.removeListener("serialport-data", handler);
+      // 移除rfid监听
+      if (ipcRenderer) {
+        ipcRenderer.removeListener("rfid-data", rfidHandler);
+      }
     };
   }, []);
 
@@ -158,10 +175,10 @@ export default function PurchaseQuickWeight() {
 
   // 新增一条空数据时，item默认为小麦
   const handleAdd = () => {
+    const newId = genId();
     setRecords([
-      ...records,
       {
-        id: genId(),
+        id: newId,
         dbId: undefined, // 新增记录没有数据库ID
         time: getTime(),
         supplier: "散户", // 默认赋值"散户"
@@ -173,8 +190,9 @@ export default function PurchaseQuickWeight() {
         price: null,
         amount: 0,
         is_archived: 0
-      },
+      }
     ]);
+    return newId;
   };
 
   // 自动保存数据到数据库
