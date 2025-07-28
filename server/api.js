@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords } = require('./purchaseWeightService');
+const { insertCard, updateCard, deleteCard, getAllCards, getCardById, batchInsertCards } = require('./cardService');
 
 const app = express();
 const port = 3001;
@@ -125,6 +126,129 @@ app.get('/api/purchase-weight-archived', async (req, res) => {
     res.json({ code: 0, msg: '查询成功', data: records });
   } catch (err) {
     res.status(500).json({ code: 1, msg: '数据库查询失败', error: err.message });
+  }
+});
+
+// ========== 卡号管理接口 ==========
+
+// 获取所有卡号
+app.get('/api/cards', async (req, res) => {
+  try {
+    const cards = await getAllCards();
+    res.json({ code: 0, msg: '查询成功', data: cards });
+  } catch (err) {
+    console.error('查询卡号失败:', err);
+    res.status(500).json({ code: 1, msg: '查询卡号失败', error: err.message });
+  }
+});
+
+// 根据ID获取卡号
+app.get('/api/cards/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const card = await getCardById(id);
+    
+    if (!card) {
+      return res.status(404).json({ code: 1, msg: '卡号不存在' });
+    }
+    
+    res.json({ code: 0, msg: '查询成功', data: card });
+  } catch (err) {
+    console.error('查询卡号失败:', err);
+    res.status(500).json({ code: 1, msg: '查询卡号失败', error: err.message });
+  }
+});
+
+// 添加单个卡号
+app.post('/api/cards', async (req, res) => {
+  try {
+    const { card_number, description } = req.body;
+    
+    if (!card_number) {
+      return res.status(400).json({ code: 1, msg: '卡号必填' });
+    }
+    
+    const insertId = await insertCard({ card_number, description });
+    res.json({ code: 0, msg: '添加成功', data: { id: insertId } });
+  } catch (err) {
+    console.error('添加卡号失败:', err);
+    if (err.message === '卡号已存在') {
+      res.status(400).json({ code: 1, msg: '卡号已存在' });
+    } else {
+      res.status(500).json({ code: 1, msg: '添加卡号失败', error: err.message });
+    }
+  }
+});
+
+// 批量添加卡号
+app.post('/api/cards/batch', async (req, res) => {
+  try {
+    const { cards } = req.body;
+    
+    if (!Array.isArray(cards) || cards.length === 0) {
+      return res.status(400).json({ code: 1, msg: '卡号列表不能为空' });
+    }
+    
+    // 验证数据格式
+    for (const card of cards) {
+      if (!card.card_number) {
+        return res.status(400).json({ code: 1, msg: '卡号必填' });
+      }
+    }
+    
+    const results = await batchInsertCards(cards);
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    
+    res.json({ 
+      code: 0, 
+      msg: `批量添加完成，成功${successCount}个，失败${failCount}个`, 
+      data: { results, successCount, failCount } 
+    });
+  } catch (err) {
+    console.error('批量添加卡号失败:', err);
+    res.status(500).json({ code: 1, msg: '批量添加卡号失败', error: err.message });
+  }
+});
+
+// 更新卡号
+app.put('/api/cards/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { card_number, description } = req.body;
+    
+    if (!card_number) {
+      return res.status(400).json({ code: 1, msg: '卡号必填' });
+    }
+    
+    await updateCard(id, { card_number, description });
+    res.json({ code: 0, msg: '更新成功' });
+  } catch (err) {
+    console.error('更新卡号失败:', err);
+    if (err.message === '卡号已被其他记录使用') {
+      res.status(400).json({ code: 1, msg: '卡号已被其他记录使用' });
+    } else if (err.message === '卡号记录不存在') {
+      res.status(404).json({ code: 1, msg: '卡号记录不存在' });
+    } else {
+      res.status(500).json({ code: 1, msg: '更新卡号失败', error: err.message });
+    }
+  }
+});
+
+// 删除卡号
+app.delete('/api/cards/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = await deleteCard(id);
+    
+    if (success) {
+      res.json({ code: 0, msg: '删除成功' });
+    } else {
+      res.status(404).json({ code: 1, msg: '卡号记录不存在' });
+    }
+  } catch (err) {
+    console.error('删除卡号失败:', err);
+    res.status(500).json({ code: 1, msg: '删除卡号失败', error: err.message });
   }
 });
 
