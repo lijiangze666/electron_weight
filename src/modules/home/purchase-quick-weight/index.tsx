@@ -108,12 +108,13 @@ export default function PurchaseQuickWeight() {
 
     // 新增：全局监听RFID读卡事件，刷卡即新增
     const rfidHandler = (_event: any, cardId: string) => {
-      // 刷卡-新增-毛重 连贯动作
+      // 刷卡时只执行新增操作
       const newId = handleAdd();
       setSelectedId(newId);
-      // 刷卡后直接弹出单价输入框
-      setPriceDialogOpen(true);
-      setInputPrice("");
+       // 刷卡后直接弹出单价输入框
+       setPriceDialogOpen(true);
+       setInputPrice("");
+      console.log('RFID刷卡触发新增，卡号:', cardId);
     };
     if (ipcRenderer) {
       ipcRenderer.on("rfid-data", rfidHandler);
