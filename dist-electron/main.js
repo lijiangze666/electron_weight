@@ -1,5 +1,5 @@
 "use strict";
-const { app, BrowserWindow, Menu } = require("electron");
+const { app, BrowserWindow, Menu, globalShortcut } = require("electron");
 const path = require("path");
 const { SerialPort } = require("serialport");
 let serialPortInstance = null;
@@ -13,6 +13,41 @@ function startMockSerial() {
 `);
     });
   }, 1e3);
+}
+let rfidBuffer = "";
+let rfidTimeout = null;
+function startRFIDListener() {
+  globalShortcut.register("CommandOrControl+Shift+R", () => {
+    rfidBuffer = "";
+    console.log("RFID缓冲区已重置");
+  });
+  app.on("browser-window-created", (event, window) => {
+    if (window.rfidListenerRegistered) return;
+    window.rfidListenerRegistered = true;
+    window.webContents.on("before-input-event", (event2, input) => {
+      if (/^[0-9A-Fa-f]$/.test(input.key)) {
+        rfidBuffer += input.key.toUpperCase();
+        if (rfidTimeout) {
+          clearTimeout(rfidTimeout);
+        }
+        rfidTimeout = setTimeout(() => {
+          if (rfidBuffer.length > 0) {
+            console.log("RFID读到卡号:", rfidBuffer);
+            rfidBuffer = "";
+          }
+        }, 500);
+      } else if (input.key === "Enter") {
+        if (rfidBuffer.length > 0) {
+          console.log("RFID读到卡号:", rfidBuffer);
+          rfidBuffer = "";
+        }
+        if (rfidTimeout) {
+          clearTimeout(rfidTimeout);
+          rfidTimeout = null;
+        }
+      }
+    });
+  });
 }
 const { ipcMain } = require("electron");
 ipcMain.on("open-serialport", (event) => {
@@ -45,35 +80,8 @@ ipcMain.on("open-serialport", (event) => {
     console.log("串口已打开");
   });
 });
-let rfidPort = null;
-function startRFIDSerial() {
-  if (rfidPort && rfidPort.isOpen) return;
-  rfidPort = new SerialPort({ path: "COM3", baudRate: 115200, autoOpen: false }, (err) => {
-    if (err) {
-      console.error("RFID串口打开失败:", err.message);
-      return;
-    }
-  });
-  rfidPort.on("data", (data) => {
-    const cardId = data.toString().trim();
-    console.log("RFID读到卡号:", cardId);
-    BrowserWindow.getAllWindows().forEach((win) => {
-      win.webContents.send("rfid-data", cardId);
-    });
-  });
-  rfidPort.on("error", (err) => {
-    console.error("RFID串口错误:", err.message);
-  });
-  rfidPort.open((err) => {
-    if (err) {
-      console.error("RFID串口打开失败:", err.message);
-      return;
-    }
-    console.log("RFID串口已打开");
-  });
-}
 app.whenReady().then(() => {
-  startRFIDSerial();
+  startRFIDListener();
 });
 let mainWindow = null;
 function createLoginWindow() {

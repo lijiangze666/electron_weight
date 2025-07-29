@@ -1,5 +1,5 @@
 // 从 electron 包中导入必要的模块：app(应用实例)、BrowserWindow(窗口类)、Menu(菜单类)
-const { app, BrowserWindow, Menu } = require("electron");
+const { app, BrowserWindow, Menu, globalShortcut } = require("electron");
 // 导入 Node.js 的 path 模块，用于处理文件路径
 const path = require("path");
 // 引入 serialport 包
@@ -17,6 +17,58 @@ function startMockSerial() {
       win.webContents.send("serialport-data", `${mockValue}\r\n`);
     });
   }, 1000);
+}
+
+// RFID卡号监听（USB HID键盘输入）
+let rfidBuffer = '';
+let rfidTimeout = null;
+
+function startRFIDListener() {
+  // 使用全局键盘监听，避免重复注册
+  globalShortcut.register('CommandOrControl+Shift+R', () => {
+    // 重置RFID缓冲区
+    rfidBuffer = '';
+    console.log('RFID缓冲区已重置');
+  });
+  
+  // 监听主窗口的键盘输入
+  app.on('browser-window-created', (event, window) => {
+    // 确保只注册一次事件监听器
+    if (window.rfidListenerRegistered) return;
+    window.rfidListenerRegistered = true;
+    
+    window.webContents.on('before-input-event', (event, input) => {
+      // 如果输入的是数字或字母（十六进制字符）
+      if (/^[0-9A-Fa-f]$/.test(input.key)) {
+        rfidBuffer += input.key.toUpperCase();
+        
+        // 清除之前的超时
+        if (rfidTimeout) {
+          clearTimeout(rfidTimeout);
+        }
+        
+        // 设置超时，如果500ms内没有新输入，认为卡号读取完成
+        rfidTimeout = setTimeout(() => {
+          if (rfidBuffer.length > 0) {
+            console.log('RFID读到卡号:', rfidBuffer);
+            rfidBuffer = '';
+          }
+        }, 500);
+      }
+      // 如果输入的是回车键，立即处理卡号
+      else if (input.key === 'Enter') {
+        if (rfidBuffer.length > 0) {
+          console.log('RFID读到卡号:', rfidBuffer);
+          rfidBuffer = '';
+        }
+        // 清除超时
+        if (rfidTimeout) {
+          clearTimeout(rfidTimeout);
+          rfidTimeout = null;
+        }
+      }
+    });
+  });
 }
 
 // 监听渲染进程请求打开串口
@@ -58,38 +110,9 @@ ipcMain.on("open-serialport", (event) => {
   });
 });
 
-// 在主进程顶部引入serialport后添加如下代码：
-let rfidPort = null;
-function startRFIDSerial() {
-  if (rfidPort && rfidPort.isOpen) return;
-  rfidPort = new SerialPort({ path: 'COM3', baudRate: 115200, autoOpen: false }, (err) => {
-    if (err) {
-      console.error('RFID串口打开失败:', err.message);
-      return;
-    }
-  });
-  rfidPort.on('data', (data) => {
-    const cardId = data.toString().trim();
-    console.log('RFID读到卡号:', cardId);
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('rfid-data', cardId);
-    });
-  });
-  rfidPort.on('error', (err) => {
-    console.error('RFID串口错误:', err.message);
-  });
-  rfidPort.open((err) => {
-    if (err) {
-      console.error('RFID串口打开失败:', err.message);
-      return;
-    }
-    console.log('RFID串口已打开');
-  });
-}
-
-// 启动RFID串口监听
+// 启动RFID监听
 app.whenReady().then(() => {
-  startRFIDSerial();
+  startRFIDListener();
 });
 
 // 声明一个全局变量，用于存储主窗口的引用，初始值为 null
