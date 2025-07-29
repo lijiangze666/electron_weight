@@ -16,29 +16,37 @@ function startMockSerial() {
 }
 let rfidBuffer = "";
 let rfidTimeout = null;
+let lastInputTime = 0;
 function startRFIDListener() {
-  globalShortcut.register("CommandOrControl+Shift+R", () => {
-    rfidBuffer = "";
-    console.log("RFID缓冲区已重置");
-  });
   app.on("browser-window-created", (event, window) => {
     if (window.rfidListenerRegistered) return;
     window.rfidListenerRegistered = true;
     window.webContents.on("before-input-event", (event2, input) => {
+      const currentTime = Date.now();
       if (/^[0-9A-Fa-f]$/.test(input.key)) {
-        rfidBuffer += input.key.toUpperCase();
-        if (rfidTimeout) {
-          clearTimeout(rfidTimeout);
-        }
-        rfidTimeout = setTimeout(() => {
-          if (rfidBuffer.length > 0) {
-            console.log("RFID读到卡号:", rfidBuffer);
-            rfidBuffer = "";
+        const timeDiff = currentTime - lastInputTime;
+        lastInputTime = currentTime;
+        if (timeDiff < 50) {
+          rfidBuffer += input.key.toUpperCase();
+          if (rfidTimeout) {
+            clearTimeout(rfidTimeout);
           }
-        }, 500);
+          rfidTimeout = setTimeout(() => {
+            if (rfidBuffer.length > 0) {
+              console.log("RFID读到卡号:", rfidBuffer);
+              BrowserWindow.getAllWindows().forEach((win) => {
+                win.webContents.send("rfid-data", rfidBuffer);
+              });
+              rfidBuffer = "";
+            }
+          }, 500);
+        }
       } else if (input.key === "Enter") {
         if (rfidBuffer.length > 0) {
           console.log("RFID读到卡号:", rfidBuffer);
+          BrowserWindow.getAllWindows().forEach((win) => {
+            win.webContents.send("rfid-data", rfidBuffer);
+          });
           rfidBuffer = "";
         }
         if (rfidTimeout) {

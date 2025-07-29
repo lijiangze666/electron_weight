@@ -22,15 +22,9 @@ function startMockSerial() {
 // RFID卡号监听（USB HID键盘输入）
 let rfidBuffer = '';
 let rfidTimeout = null;
+let lastInputTime = 0;
 
 function startRFIDListener() {
-  // 使用全局键盘监听，避免重复注册
-  globalShortcut.register('CommandOrControl+Shift+R', () => {
-    // 重置RFID缓冲区
-    rfidBuffer = '';
-    console.log('RFID缓冲区已重置');
-  });
-  
   // 监听主窗口的键盘输入
   app.on('browser-window-created', (event, window) => {
     // 确保只注册一次事件监听器
@@ -38,27 +32,45 @@ function startRFIDListener() {
     window.rfidListenerRegistered = true;
     
     window.webContents.on('before-input-event', (event, input) => {
+      const currentTime = Date.now();
+      
       // 如果输入的是数字或字母（十六进制字符）
       if (/^[0-9A-Fa-f]$/.test(input.key)) {
-        rfidBuffer += input.key.toUpperCase();
+        // 检查输入间隔，RFID刷卡通常间隔很短（小于50ms）
+        const timeDiff = currentTime - lastInputTime;
+        lastInputTime = currentTime;
         
-        // 清除之前的超时
-        if (rfidTimeout) {
-          clearTimeout(rfidTimeout);
-        }
-        
-        // 设置超时，如果500ms内没有新输入，认为卡号读取完成
-        rfidTimeout = setTimeout(() => {
-          if (rfidBuffer.length > 0) {
-            console.log('RFID读到卡号:', rfidBuffer);
-            rfidBuffer = '';
+        // 如果间隔很短，认为是RFID刷卡
+        if (timeDiff < 50) {
+          rfidBuffer += input.key.toUpperCase();
+          
+          // 清除之前的超时
+          if (rfidTimeout) {
+            clearTimeout(rfidTimeout);
           }
-        }, 500);
+          
+          // 设置超时，如果500ms内没有新输入，认为卡号读取完成
+          rfidTimeout = setTimeout(() => {
+            if (rfidBuffer.length > 0) {
+              console.log('RFID读到卡号:', rfidBuffer);
+              // 发送RFID数据到渲染进程
+              BrowserWindow.getAllWindows().forEach(win => {
+                win.webContents.send('rfid-data', rfidBuffer);
+              });
+              rfidBuffer = '';
+            }
+          }, 500);
+        }
+        // 如果间隔较长，认为是手动输入，不处理
       }
       // 如果输入的是回车键，立即处理卡号
       else if (input.key === 'Enter') {
         if (rfidBuffer.length > 0) {
           console.log('RFID读到卡号:', rfidBuffer);
+          // 发送RFID数据到渲染进程
+          BrowserWindow.getAllWindows().forEach(win => {
+            win.webContents.send('rfid-data', rfidBuffer);
+          });
           rfidBuffer = '';
         }
         // 清除超时
