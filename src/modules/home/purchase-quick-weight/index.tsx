@@ -42,6 +42,7 @@ interface RecordItem {
   price: number | null; // 单价
   amount: number;
   is_archived?: number; // 新增：是否已归档
+  is_check?: number; // 新增：是否已付款，0为未付款，1为已付款
 }
 
 // 编辑状态接口
@@ -226,7 +227,8 @@ export default function PurchaseQuickWeight() {
         price: recordToSave.price,
         amount: recordToSave.amount ? Math.round(recordToSave.amount) : 0,
         is_deleted: 0,
-        is_archived: recordToSave.is_archived ?? 0
+        is_archived: recordToSave.is_archived ?? 0,
+        is_check: recordToSave.is_check ?? 0
       };
       console.log('自动保存数据:', saveData);
       let res;
@@ -290,7 +292,8 @@ export default function PurchaseQuickWeight() {
           unit: toSave.unit,
           price: toSave.price,
           amount: toSave.amount ? Math.round(toSave.amount) : 0,
-          is_deleted: 0
+          is_deleted: 0,
+          is_check: toSave.is_check ?? 0
         };
         
         console.log('准备保存的数据:', saveData);
@@ -416,7 +419,8 @@ export default function PurchaseQuickWeight() {
           unit: record.unit,
           price: record.price,
           amount: record.amount ? Math.round(record.amount) : 0,
-          is_archived: record.is_archived
+          is_archived: record.is_archived,
+          is_check: record.is_check || 0
         }));
         setRecords(allRecords); // 将查询到的所有记录显示在上方表格中
         // setSuccessMsg(`查询成功，共找到 ${allRecords.length} 条记录`);
@@ -859,9 +863,57 @@ export default function PurchaseQuickWeight() {
     if (!selectedArchivedId) return;
     const toRestore = archivedRecords.find(r => r.id === selectedArchivedId);
     if (toRestore) {
+      // 检查是否已付款，已付款的记录不允许反审核
+      if (toRestore.is_check === 1) {
+        setError("已付款的记录不允许反审核！");
+        setOpen(true);
+        return;
+      }
+      
       setRecords(prev => [...prev, toRestore]);
       setArchivedRecords(prev => prev.filter(r => r.id !== selectedArchivedId));
       setSelectedArchivedId(null);
+      setSuccessMsg("反审核成功！");
+      setOpen(true);
+    }
+  };
+  // 付款处理函数
+  const handlePayment = async () => {
+    if (!selectedArchivedId) return;
+    
+    const recordToPay = archivedRecords.find(r => r.id === selectedArchivedId);
+    if (!recordToPay) return;
+    
+    try {
+      console.log('准备更新付款状态，单据号:', selectedArchivedId);
+      
+      // 调用后端更新付款状态接口
+      const response = await axios.put(`http://localhost:3001/api/purchase-weight-payment/${selectedArchivedId}`, {
+        is_check: 1
+      });
+      
+      console.log('付款状态更新响应:', response.data);
+      
+      if (response.data.code === 0) {
+        // 更新本地状态
+        setArchivedRecords(prev => prev.map(record => {
+          if (record.id === selectedArchivedId) {
+            return { ...record, is_check: 1 };
+          }
+          return record;
+        }));
+        
+        setSuccessMsg("付款状态更新成功！");
+        setOpen(true);
+      } else {
+        setError(response.data.msg || "付款状态更新失败！");
+        setOpen(true);
+      }
+    } catch (err) {
+      console.error('付款状态更新错误详情:', err);
+      const errorMsg = (err as any).message || String(err);
+      setError("付款状态更新失败：" + errorMsg);
+      setOpen(true);
     }
   };
   // 按钮大小
@@ -884,7 +936,8 @@ export default function PurchaseQuickWeight() {
           unit: record.unit,
           price: record.price,
           amount: record.amount ? Math.round(record.amount) : 0,
-          is_archived: record.is_archived
+          is_archived: record.is_archived,
+          is_check: record.is_check || 0 // 新增：付款状态
         }));
         setArchivedRecords(archived);
       } else {
@@ -1217,12 +1270,39 @@ export default function PurchaseQuickWeight() {
             />
             <Button
               variant="contained"
-              color="warning"
               onClick={handleUnAudit}
-              disabled={!selectedArchivedId}
-              sx={{ ...bigBtnStyle, borderRadius: 3, boxShadow: 2, fontWeight: 700 }}
+              disabled={!selectedArchivedId || (archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1)}
+              sx={{ 
+                ...bigBtnStyle, 
+                borderRadius: 3, 
+                boxShadow: 2, 
+                fontWeight: 700,
+                backgroundColor: archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? '#9e9e9e' : '#ed6c02',
+                color: '#ffffff',
+                '&:hover': {
+                  backgroundColor: archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? '#9e9e9e' : '#e65100',
+                }
+              }}
             >
-              反审核
+              {archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? "已付款" : "反审核"}
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handlePayment}
+              disabled={!selectedArchivedId || (archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1)}
+              sx={{ 
+                ...bigBtnStyle, 
+                borderRadius: 3, 
+                boxShadow: 2, 
+                fontWeight: 700,
+                backgroundColor: archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? '#9e9e9e' : '#2e7d32',
+                color: '#ffffff',
+                '&:hover': {
+                  backgroundColor: archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? '#9e9e9e' : '#1b5e20',
+                }
+              }}
+            >
+              {archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? "已付款" : "付款"}
             </Button>
           </div>
           <TableContainer
@@ -1238,16 +1318,31 @@ export default function PurchaseQuickWeight() {
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow sx={{ background: "linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)", boxShadow: 1 }}>
-                  <TableCell sx={{ width: '13%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
-                  <TableCell sx={{ width: '13%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
+                  <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
+                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
+                  <TableCell sx={{ width: '9%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
                   <TableCell sx={{ width: '7%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>物品</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/公斤</TableCell>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>金额</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>金额</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <span>付款状态</span>
+                      <div style={{ display: 'flex', gap: 4, fontSize: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <div style={{ width: 8, height: 8, backgroundColor: '#4caf50', borderRadius: '50%' }}></div>
+                          <span style={{ color: '#4caf50' }}>已付</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <div style={{ width: 8, height: 8, backgroundColor: '#ff9800', borderRadius: '50%' }}></div>
+                          <span style={{ color: '#ff9800' }}>未付</span>
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1259,9 +1354,17 @@ export default function PurchaseQuickWeight() {
                     onClick={e => { e.stopPropagation(); setSelectedArchivedId(r.id); }}
                     style={{ cursor: "pointer" }}
                     sx={{
-                      backgroundColor: selectedArchivedId === r.id ? '#e3f2fd' : 'inherit',
+                      backgroundColor: selectedArchivedId === r.id 
+                        ? '#e3f2fd' 
+                        : r.is_check === 1 
+                          ? '#f1f8e9' // 已付款记录显示浅绿色背景
+                          : 'inherit',
                       '&:hover': {
-                        backgroundColor: selectedArchivedId === r.id ? '#bbdefb' : '#f5f5f5',
+                        backgroundColor: selectedArchivedId === r.id 
+                          ? '#bbdefb' 
+                          : r.is_check === 1 
+                            ? '#e8f5e8' // 已付款记录悬停时显示稍深的绿色
+                            : '#f5f5f5',
                       },
                       '& .MuiTableCell-root': {
                         color: selectedArchivedId === r.id ? '#1976d2' : '#1976d2',
@@ -1269,16 +1372,31 @@ export default function PurchaseQuickWeight() {
                       }
                     }}
                   >
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}>{r.id}</TableCell>
+                    <TableCell sx={{ width: '12%', textAlign: "center", fontSize: "20px" }}>{r.id}</TableCell>
                     <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}>{formatTime(r.time)}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>{r.supplier}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>{r.item}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price}</TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>
-                    <TableCell sx={{ width: '20%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#d32f2f' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
+                    <TableCell sx={{ width: '9%', textAlign: "center", fontSize: "20px" }}>{r.supplier}</TableCell>
+                    <TableCell sx={{ width: '7%', textAlign: "center", fontSize: "20px" }}>{r.item}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.maozhong !== null ? r.maozhong : ""}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>
+                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#d32f2f' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
+                    <TableCell 
+                      sx={{ 
+                        width: '8%', 
+                        textAlign: "center", 
+                        fontSize: "20px", 
+                        fontWeight: 700, 
+                        color: r.is_check === 1 ? '#ffffff' : '#ffffff',
+                        backgroundColor: r.is_check === 1 ? '#4caf50' : '#ff9800',
+                        borderRadius: 1,
+                        mx: 0.5,
+                        py: 0.5
+                      }}
+                    >
+                      {r.is_check === 1 ? "已付款" : "未付款"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

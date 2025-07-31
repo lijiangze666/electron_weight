@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords } = require('./purchaseWeightService');
+const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords, updatePaymentStatus } = require('./purchaseWeightService');
 const { insertCard, updateCard, deleteCard, getAllCards, getCardById, batchInsertCards } = require('./cardService');
 
 const app = express();
@@ -126,6 +126,37 @@ app.get('/api/purchase-weight-archived', async (req, res) => {
     res.json({ code: 0, msg: '查询成功', data: records });
   } catch (err) {
     res.status(500).json({ code: 1, msg: '数据库查询失败', error: err.message });
+  }
+});
+
+// 更新付款状态
+app.put('/api/purchase-weight-payment/:billNo', async (req, res) => {
+  try {
+    const { billNo } = req.params;
+    const { is_check } = req.body;
+    console.log('收到付款状态更新请求，单据号:', billNo, '付款状态:', is_check);
+    
+    if (!billNo) {
+      return res.status(400).json({ code: 1, msg: '单据号必填' });
+    }
+    
+    if (is_check === undefined || is_check === null) {
+      return res.status(400).json({ code: 1, msg: '付款状态必填' });
+    }
+    
+    console.log('开始更新付款状态...');
+    const success = await updatePaymentStatus(billNo, is_check);
+    
+    if (success) {
+      console.log('付款状态更新成功');
+      res.json({ code: 0, msg: '付款状态更新成功' });
+    } else {
+      console.log('付款状态更新失败，记录不存在');
+      res.status(404).json({ code: 1, msg: '记录不存在' });
+    }
+  } catch (err) {
+    console.error('付款状态更新失败:', err);
+    res.status(500).json({ code: 1, msg: '数据库更新失败', error: err.message });
   }
 });
 

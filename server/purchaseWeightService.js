@@ -7,8 +7,8 @@ async function insertPurchaseWeightRecord(record) {
     
     const sql = `
       INSERT INTO purchase_weight_records
-      (bill_no, time, supplier, item, maozhong, pizhong, jingzhong, unit, price, amount, is_deleted)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (bill_no, time, supplier, item, maozhong, pizhong, jingzhong, unit, price, amount, is_deleted, is_check)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       record.bill_no,
@@ -21,7 +21,8 @@ async function insertPurchaseWeightRecord(record) {
       record.unit || '斤',
       record.price,
       record.amount,
-      record.is_deleted || 0
+      record.is_deleted || 0,
+      record.is_check || 0
     ];
     
     console.log('SQL参数:', values);
@@ -52,7 +53,8 @@ async function getAllActiveRecords() {
       price,
       amount,
       is_deleted,
-      is_archived
+      is_archived,
+      is_check
     FROM purchase_weight_records 
     WHERE is_deleted = 0 AND is_archived = 0
     ORDER BY time DESC
@@ -77,7 +79,8 @@ async function getRecordsByTimeRange(startTime, endTime) {
       price,
       amount,
       is_deleted,
-      is_archived
+      is_archived,
+      is_check
     FROM purchase_weight_records 
     WHERE is_deleted = 0 AND is_archived = 0
     AND time >= ? 
@@ -124,7 +127,8 @@ async function updateRecord(billNo, record) {
         price = ?,
         amount = ?,
         is_deleted = 0,
-        is_archived = ?
+        is_archived = ?,
+        is_check = ?
       WHERE bill_no = ?
     `;
     const values = [
@@ -138,6 +142,7 @@ async function updateRecord(billNo, record) {
       record.price,
       record.amount,
       record.is_archived ?? 0,
+      record.is_check ?? 0,
       billNo
     ];
     
@@ -165,7 +170,8 @@ async function getAllArchivedRecords() {
       price,
       amount,
       is_deleted,
-      is_archived
+      is_archived,
+      is_check
     FROM purchase_weight_records 
     WHERE is_deleted = 0 AND is_archived = 1
     ORDER BY time DESC
@@ -174,11 +180,23 @@ async function getAllArchivedRecords() {
   return rows;
 }
 
+// 更新付款状态
+async function updatePaymentStatus(billNo, isCheck) {
+  const sql = `
+    UPDATE purchase_weight_records 
+    SET is_check = ? 
+    WHERE bill_no = ?
+  `;
+  const [result] = await pool.execute(sql, [isCheck, billNo]);
+  return result.affectedRows > 0;
+}
+
 module.exports = { 
   insertPurchaseWeightRecord,
   getAllActiveRecords,
   getRecordsByTimeRange,
   deleteRecord,
   updateRecord,
-  getAllArchivedRecords
+  getAllArchivedRecords,
+  updatePaymentStatus
 };
