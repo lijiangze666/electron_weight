@@ -4,7 +4,48 @@ const { app, BrowserWindow, Menu, globalShortcut } = require("electron");
 const path = require("path");
 // 引入 serialport 包
 const { SerialPort } = require("serialport");
+// 引入 child_process 来启动后端服务
+const { spawn } = require("child_process");
 let serialPortInstance = null; // 用于保存串口实例
+
+// 后端服务进程引用
+let serverProcess = null;
+
+// 启动后端服务
+function startBackendServer() {
+  const serverPath = path.join(__dirname, '../server/api.js');
+  serverProcess = spawn('node', [serverPath], {
+    stdio: 'pipe',
+    detached: false
+  });
+
+  serverProcess.stdout.on('data', (data) => {
+    console.log('后端服务输出:', data.toString());
+  });
+
+  serverProcess.stderr.on('data', (data) => {
+    console.error('后端服务错误:', data.toString());
+  });
+
+  serverProcess.on('close', (code) => {
+    console.log('后端服务已关闭，退出码:', code);
+  });
+
+  serverProcess.on('error', (error) => {
+    console.error('启动后端服务失败:', error);
+  });
+
+  console.log('后端服务已启动');
+}
+
+// 关闭后端服务
+function stopBackendServer() {
+  if (serverProcess) {
+    console.log('正在关闭后端服务...');
+    serverProcess.kill('SIGTERM');
+    serverProcess = null;
+  }
+}
 
 // 串口模拟功能
 let mockSerialInterval = null;
@@ -289,11 +330,24 @@ function createMainWindow() {
   });
 }
 
-// 当 Electron 完成初始化时，调用 createLoginWindow 函数创建登录窗口
-app.whenReady().then(createLoginWindow);
+// 当 Electron 完成初始化时，启动后端服务并创建登录窗口
+app.whenReady().then(() => {
+  // 启动后端服务
+  startBackendServer();
+  // 创建登录窗口
+  createLoginWindow();
+});
 
 // 监听所有窗口关闭的事件
 app.on("window-all-closed", () => {
+  // 关闭后端服务
+  stopBackendServer();
   // 当所有窗口都关闭时，退出应用
   app.quit();
+});
+
+// 监听应用即将退出的事件
+app.on("before-quit", () => {
+  // 确保在应用退出前关闭后端服务
+  stopBackendServer();
 });

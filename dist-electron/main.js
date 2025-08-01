@@ -2,7 +2,36 @@
 const { app, BrowserWindow, Menu, globalShortcut } = require("electron");
 const path = require("path");
 const { SerialPort } = require("serialport");
+const { spawn } = require("child_process");
 let serialPortInstance = null;
+let serverProcess = null;
+function startBackendServer() {
+  const serverPath = path.join(__dirname, "../server/api.js");
+  serverProcess = spawn("node", [serverPath], {
+    stdio: "pipe",
+    detached: false
+  });
+  serverProcess.stdout.on("data", (data) => {
+    console.log("后端服务输出:", data.toString());
+  });
+  serverProcess.stderr.on("data", (data) => {
+    console.error("后端服务错误:", data.toString());
+  });
+  serverProcess.on("close", (code) => {
+    console.log("后端服务已关闭，退出码:", code);
+  });
+  serverProcess.on("error", (error) => {
+    console.error("启动后端服务失败:", error);
+  });
+  console.log("后端服务已启动");
+}
+function stopBackendServer() {
+  if (serverProcess) {
+    console.log("正在关闭后端服务...");
+    serverProcess.kill("SIGTERM");
+    serverProcess = null;
+  }
+}
 let mockSerialInterval = null;
 function startMockSerial() {
   if (mockSerialInterval) return;
@@ -216,7 +245,14 @@ function createMainWindow() {
     app.quit();
   });
 }
-app.whenReady().then(createLoginWindow);
+app.whenReady().then(() => {
+  startBackendServer();
+  createLoginWindow();
+});
 app.on("window-all-closed", () => {
+  stopBackendServer();
   app.quit();
+});
+app.on("before-quit", () => {
+  stopBackendServer();
 });

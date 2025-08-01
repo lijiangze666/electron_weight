@@ -6,7 +6,7 @@
     "dev:server": "node server/api.js",
     "dev:client": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:electron\""
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:electron\""
   },
   "author": "",
   "license": "ISC",
