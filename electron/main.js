@@ -82,7 +82,7 @@ function startRFIDListener() {
         lastInputTime = currentTime;
         
         // 如果间隔很短，认为是RFID刷卡
-        if (timeDiff < 50) {
+        if (timeDiff < 100) {
           rfidBuffer += input.key.toUpperCase();
           
           // 清除之前的超时

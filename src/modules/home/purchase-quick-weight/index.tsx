@@ -180,22 +180,23 @@ export default function PurchaseQuickWeight() {
   // 新增一条空数据时，item默认为小麦
   const handleAdd = () => {
     const newId = genId();
-    setRecords([
-      {
-        id: newId,
-        dbId: undefined, // 新增记录没有数据库ID
-        time: getTime(),
-        supplier: "散户", // 默认赋值"散户"
-        item: "小麦", // 默认为小麦
-        maozhong: null,
-        pizhong: null,
-        jingzhong: null,
-        unit: "公斤",
-        price: null,
-        amount: 0,
-        is_archived: 0
-      }
-    ]);
+    const newRecord = {
+      id: newId,
+      dbId: undefined, // 新增记录没有数据库ID
+      time: getTime(),
+      supplier: "散户", // 默认赋值"散户"
+      item: "小麦", // 默认为小麦
+      maozhong: null,
+      pizhong: null,
+      jingzhong: null,
+      unit: "公斤",
+      price: null,
+      amount: 0,
+      is_archived: 0
+    };
+    
+    // 在现有记录基础上新增一条记录
+    setRecords(prev => [newRecord, ...prev]);
     return newId;
   };
 
