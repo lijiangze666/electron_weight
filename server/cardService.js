@@ -1,25 +1,26 @@
-const pool = require('./db');
+const { getPool } = require('./db');
 
 // 创建卡号表（如果不存在）
-async function createCardTable() {
-  try {
-    const createTableSQL = `
-      CREATE TABLE IF NOT EXISTS cards (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        card_number VARCHAR(50) NOT NULL UNIQUE,
-        description VARCHAR(255),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        is_deleted TINYINT DEFAULT 0
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `;
-    await pool.execute(createTableSQL);
-    console.log('卡号表创建成功或已存在');
-  } catch (error) {
-    console.error('创建卡号表失败:', error);
-    throw error;
-  }
-}
+// async function createCardTable() {
+//   try {
+//     const pool = getPool();
+//     const createTableSQL = `
+//       CREATE TABLE IF NOT EXISTS cards (
+//         id INT AUTO_INCREMENT PRIMARY KEY,
+//         card_number VARCHAR(50) NOT NULL UNIQUE,
+//         description VARCHAR(255),
+//         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+//         is_deleted TINYINT DEFAULT 0
+//       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+//     `;
+//     await pool.execute(createTableSQL);
+//     console.log('卡号表创建成功或已存在');
+//   } catch (error) {
+//     console.error('创建卡号表失败:', error);
+//     throw error;
+//   }
+// }
 
 // 插入卡号记录
 async function insertCard(cardData) {
@@ -27,7 +28,7 @@ async function insertCard(cardData) {
     const { card_number, description } = cardData;
     
     // 检查卡号是否已存在
-    const [existingCards] = await pool.execute(
+    const [existingCards] = await getPool().execute(
       'SELECT id FROM cards WHERE card_number = ? AND is_deleted = 0',
       [card_number]
     );
@@ -36,7 +37,7 @@ async function insertCard(cardData) {
       throw new Error('卡号已存在');
     }
     
-    const [result] = await pool.execute(
+    const [result] = await getPool().execute(
       'INSERT INTO cards (card_number, description) VALUES (?, ?)',
       [card_number, description || null]
     );
@@ -55,7 +56,7 @@ async function updateCard(id, cardData) {
     const { card_number, description } = cardData;
     
     // 检查卡号是否已被其他记录使用
-    const [existingCards] = await pool.execute(
+    const [existingCards] = await getPool().execute(
       'SELECT id FROM cards WHERE card_number = ? AND id != ? AND is_deleted = 0',
       [card_number, id]
     );
@@ -64,7 +65,7 @@ async function updateCard(id, cardData) {
       throw new Error('卡号已被其他记录使用');
     }
     
-    const [result] = await pool.execute(
+    const [result] = await getPool().execute(
       'UPDATE cards SET card_number = ?, description = ? WHERE id = ? AND is_deleted = 0',
       [card_number, description || null, id]
     );
@@ -84,7 +85,7 @@ async function updateCard(id, cardData) {
 // 删除卡号记录（软删除）
 async function deleteCard(id) {
   try {
-    const [result] = await pool.execute(
+    const [result] = await getPool().execute(
       'UPDATE cards SET is_deleted = 1 WHERE id = ? AND is_deleted = 0',
       [id]
     );
@@ -104,7 +105,7 @@ async function deleteCard(id) {
 // 获取所有未删除的卡号记录
 async function getAllCards() {
   try {
-    const [rows] = await pool.execute(
+    const [rows] = await getPool().execute(
       'SELECT id, card_number, description, created_at, updated_at FROM cards WHERE is_deleted = 0 ORDER BY created_at DESC'
     );
     
@@ -124,7 +125,7 @@ async function getAllCards() {
 // 根据ID获取卡号记录
 async function getCardById(id) {
   try {
-    const [rows] = await pool.execute(
+    const [rows] = await getPool().execute(
       'SELECT id, card_number, description, created_at, updated_at FROM cards WHERE id = ? AND is_deleted = 0',
       [id]
     );
@@ -150,17 +151,17 @@ async function getCardById(id) {
 // 批量插入卡号记录
 async function batchInsertCards(cardsData) {
   try {
-    const connection = await pool.getConnection();
+    const pool = getPool();
     
     try {
-      await connection.beginTransaction();
+      await pool.beginTransaction();
       
       const results = [];
       for (const cardData of cardsData) {
         const { card_number, description } = cardData;
         
         // 检查卡号是否已存在
-        const [existingCards] = await connection.execute(
+        const [existingCards] = await pool.execute(
           'SELECT id FROM cards WHERE card_number = ? AND is_deleted = 0',
           [card_number]
         );
@@ -170,7 +171,7 @@ async function batchInsertCards(cardsData) {
           continue;
         }
         
-        const [result] = await connection.execute(
+        const [result] = await pool.execute(
           'INSERT INTO cards (card_number, description) VALUES (?, ?)',
           [card_number, description || null]
         );
@@ -182,14 +183,14 @@ async function batchInsertCards(cardsData) {
         });
       }
       
-      await connection.commit();
+      await pool.commit();
       console.log('批量插入卡号完成');
       return results;
     } catch (error) {
-      await connection.rollback();
+      await pool.rollback();
       throw error;
     } finally {
-      connection.release();
+      // No need to release connection here as getPool manages it
     }
   } catch (error) {
     console.error('批量插入卡号失败:', error);
@@ -198,7 +199,7 @@ async function batchInsertCards(cardsData) {
 }
 
 // 初始化时创建表
-createCardTable().catch(console.error);
+// createCardTable().catch(console.error);
 
 module.exports = {
   insertCard,

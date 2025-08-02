@@ -1,14 +1,102 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const fs = require('fs').promises;
+const path = require('path');
 const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords, updatePaymentStatus } = require('./purchaseWeightService');
 const { insertCard, updateCard, deleteCard, getAllCards, getCardById, batchInsertCards } = require('./cardService');
+const { loadConfig, reconnect } = require('./db');
 
 const app = express();
 const port = 3001;
 
 app.use(cors());
 app.use(bodyParser.json());
+
+// 获取数据库配置
+app.get('/api/database-config', async (req, res) => {
+  try {
+    const config = await loadConfig();
+    res.json({ code: 0, msg: '获取配置成功', data: config.database });
+  } catch (error) {
+    console.error('获取数据库配置失败:', error);
+    res.status(500).json({ code: 1, msg: '获取配置失败', error: error.message });
+  }
+});
+
+// 更新数据库配置
+app.put('/api/database-config', async (req, res) => {
+  try {
+    const newConfig = req.body;
+    console.log('收到数据库配置更新请求:', newConfig);
+    
+    // 验证必填字段
+    if (!newConfig.host || !newConfig.user || !newConfig.database) {
+      return res.status(400).json({ code: 1, msg: '主机、用户名、数据库名必填' });
+    }
+    
+    // 读取当前配置
+    const configPath = path.join(__dirname, 'config.json');
+    let currentConfig;
+    try {
+      const configData = await fs.readFile(configPath, 'utf8');
+      currentConfig = JSON.parse(configData);
+    } catch (error) {
+      currentConfig = { database: {} };
+    }
+    
+    // 更新配置
+    currentConfig.database = {
+      ...currentConfig.database,
+      ...newConfig,
+      port: parseInt(newConfig.port) || 3306,
+      connectionLimit: parseInt(newConfig.connectionLimit) || 10,
+      queueLimit: parseInt(newConfig.queueLimit) || 0
+    };
+    
+    // 保存配置到文件
+    await fs.writeFile(configPath, JSON.stringify(currentConfig, null, 2), 'utf8');
+    
+    // 重新连接数据库
+    await reconnect();
+    
+    console.log('数据库配置更新成功');
+    res.json({ code: 0, msg: '配置更新成功', data: currentConfig.database });
+  } catch (error) {
+    console.error('更新数据库配置失败:', error);
+    res.status(500).json({ code: 1, msg: '配置更新失败', error: error.message });
+  }
+});
+
+// 测试数据库连接
+app.post('/api/test-database-connection', async (req, res) => {
+  try {
+    const config = req.body;
+    console.log('测试数据库连接:', config);
+    
+    // 创建临时连接进行测试
+    const mysql = require('mysql2/promise');
+    const testPool = mysql.createPool({
+      host: config.host,
+      user: config.user,
+      password: config.password,
+      database: config.database,
+      port: parseInt(config.port) || 3306,
+      connectionLimit: 1,
+      queueLimit: 0
+    });
+    
+    // 测试连接
+    const [rows] = await testPool.execute('SELECT 1 as test');
+    await testPool.end();
+    
+    console.log('数据库连接测试成功');
+    res.json({ code: 0, msg: '连接测试成功', data: rows });
+  } catch (error) {
+    console.error('数据库连接测试失败:', error);
+    res.status(500).json({ code: 1, msg: '连接测试失败', error: error.message });
+  }
+});
 
 // 插入采购过磅记录
 app.post('/api/purchase-weight', async (req, res) => {

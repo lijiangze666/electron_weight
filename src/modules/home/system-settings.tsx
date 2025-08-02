@@ -4,6 +4,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
+import DatabaseConfig from '../settings/DatabaseConfig';
 
 const menuItems = [
   { key: "user", label: "用户管理" },
@@ -12,45 +13,6 @@ const menuItems = [
   { key: "db", label: "数据库连接配置" },
   { key: "card", label: "一卡通设置" },
 ];
-
-function DbConfigForm() {
-  const [form, setForm] = React.useState({
-    host: '',
-    user: '',
-    password: '',
-    database: '',
-  });
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // TODO: 保存逻辑，写入db.js或调用API
-    alert('保存成功（仅前端演示）');
-  };
-  return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 400 }}>
-      {/* <Typography variant="subtitle1" sx={{ mb: 2 }}>数据库连接配置</Typography> */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body2">数据库IP</Typography>
-        <input name="host" value={form.host} onChange={handleChange} style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc' }} />
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body2">用户名</Typography>
-        <input name="user" value={form.user} onChange={handleChange} style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc' }} />
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body2">密码</Typography>
-        <input name="password" type="password" value={form.password} onChange={handleChange} style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc' }} />
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body2">数据库</Typography>
-        <input name="database" value={form.database} onChange={handleChange} style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc' }} />
-      </Box>
-      <button type="submit" style={{ padding: '8px 24px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>保存</button>
-    </Box>
-  );
-}
 
 function CardSetting() {
   const [cards, setCards] = React.useState<Array<{ id: string; cardNumber: string; description: string; dbId?: number }>>([]);
@@ -359,7 +321,7 @@ export default function SystemSettings() {
       case "base":
         return <Typography>这里是基础配置内容</Typography>;
       case "db":
-        return <DbConfigForm />;
+        return <DatabaseConfig />;
       case "card":
         return <CardSetting />;
       default:

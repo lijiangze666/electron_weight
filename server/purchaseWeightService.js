@@ -1,10 +1,11 @@
 // purchaseWeightService.js
-const pool = require('./db');
+const { getPool } = require('./db');
 
 async function insertPurchaseWeightRecord(record) {
   try {
     console.log('准备插入数据:', record);
     
+    const pool = getPool();
     const sql = `
       INSERT INTO purchase_weight_records
       (bill_no, time, supplier, item, maozhong, pizhong, jingzhong, unit, price, amount, is_deleted, is_check)
@@ -59,6 +60,7 @@ async function getAllActiveRecords() {
     WHERE is_deleted = 0 AND is_archived = 0
     ORDER BY time DESC
   `;
+  const pool = getPool();
   const [rows] = await pool.execute(sql);
   return rows;
 }
@@ -87,6 +89,7 @@ async function getRecordsByTimeRange(startTime, endTime) {
     AND time <= ?
     ORDER BY time DESC
   `;
+  const pool = getPool();
   const [rows] = await pool.execute(sql, [startTime, endTime]);
   return rows;
 }
@@ -98,6 +101,7 @@ async function deleteRecord(billNo) {
     SET is_deleted = 1 
     WHERE bill_no = ?
   `;
+  const pool = getPool();
   const [result] = await pool.execute(sql, [billNo]);
   return result.affectedRows > 0;
 }
@@ -106,6 +110,7 @@ async function deleteRecord(billNo) {
 async function updateRecord(billNo, record) {
   // 先检查记录是否存在
   const checkSql = `SELECT id FROM purchase_weight_records WHERE bill_no = ?`;
+  const pool = getPool();
   const [checkResult] = await pool.execute(checkSql, [billNo]);
   
   if (checkResult.length === 0) {
@@ -148,6 +153,7 @@ async function updateRecord(billNo, record) {
     
     console.log('【更新SQL】:', sql);
     console.log('【参数】:', values);
+    const pool = getPool();
     const [result] = await pool.execute(sql, values);
     console.log('【影响行数】:', result.affectedRows);
     return result.affectedRows > 0;
@@ -176,6 +182,7 @@ async function getAllArchivedRecords() {
     WHERE is_deleted = 0 AND is_archived = 1
     ORDER BY time DESC
   `;
+  const pool = getPool();
   const [rows] = await pool.execute(sql);
   return rows;
 }
@@ -187,6 +194,7 @@ async function updatePaymentStatus(billNo, isCheck) {
     SET is_check = ? 
     WHERE bill_no = ?
   `;
+  const pool = getPool();
   const [result] = await pool.execute(sql, [isCheck, billNo]);
   return result.affectedRows > 0;
 }

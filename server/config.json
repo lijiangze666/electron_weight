@@ -1,0 +1,11 @@
+{
+  "database": {
+    "host": "47.94.131.132",
+    "user": "weight",
+    "password": "123456",
+    "database": "weight",
+    "port": 3306,
+    "connectionLimit": 10,
+    "queueLimit": 0
+  }
+}

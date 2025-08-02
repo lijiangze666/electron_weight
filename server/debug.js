@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const pool = require('./db');
+const { getPool } = require('./db');
 
 const app = express();
 const port = 3001;
@@ -12,6 +12,7 @@ app.use(bodyParser.json());
 // 测试数据库连接
 app.get('/test-db', async (req, res) => {
   try {
+    const pool = getPool();
     const [rows] = await pool.execute('SELECT 1 as test');
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -22,6 +23,7 @@ app.get('/test-db', async (req, res) => {
 // 测试查询表结构
 app.get('/test-table', async (req, res) => {
   try {
+    const pool = getPool();
     const [rows] = await pool.execute('DESCRIBE purchase_weight_records');
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -32,6 +34,7 @@ app.get('/test-table', async (req, res) => {
 // 测试查询数据
 app.get('/test-data', async (req, res) => {
   try {
+    const pool = getPool();
     const [rows] = await pool.execute('SELECT * FROM purchase_weight_records LIMIT 5');
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -49,6 +52,7 @@ app.put('/test-put/:billNo', async (req, res) => {
     
     // 先检查记录是否存在
     const checkSql = `SELECT id FROM purchase_weight_records WHERE bill_no = ?`;
+    const pool = getPool();
     const [checkResult] = await pool.execute(checkSql, [billNo]);
     
     console.log('检查结果:', checkResult);
