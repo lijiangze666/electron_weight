@@ -55,7 +55,7 @@ function startRFIDListener() {
       if (/^[0-9A-Fa-f]$/.test(input.key)) {
         const timeDiff = currentTime - lastInputTime;
         lastInputTime = currentTime;
-        if (timeDiff < 100) {
+        if (timeDiff < 50) {
           rfidBuffer += input.key.toUpperCase();
           if (rfidTimeout) {
             clearTimeout(rfidTimeout);
