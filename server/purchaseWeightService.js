@@ -8,8 +8,8 @@ async function insertPurchaseWeightRecord(record) {
     const pool = getPool();
     const sql = `
       INSERT INTO purchase_weight_records
-      (bill_no, time, supplier, item, maozhong, pizhong, jingzhong, unit, price, amount, is_deleted, is_check)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (bill_no, time, supplier, item, maozhong, pizhong, jingzhong, unit, price, amount, card_no, is_deleted, is_check)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       record.bill_no,
@@ -22,6 +22,7 @@ async function insertPurchaseWeightRecord(record) {
       record.unit || '斤',
       record.price,
       record.amount,
+      record.card_no || null,
       record.is_deleted || 0,
       record.is_check || 0
     ];
@@ -53,6 +54,7 @@ async function getAllActiveRecords() {
       unit,
       price,
       amount,
+      card_no,
       is_deleted,
       is_archived,
       is_check
@@ -80,6 +82,7 @@ async function getRecordsByTimeRange(startTime, endTime) {
       unit,
       price,
       amount,
+      card_no,
       is_deleted,
       is_archived,
       is_check
@@ -131,6 +134,7 @@ async function updateRecord(billNo, record) {
         unit = ?,
         price = ?,
         amount = ?,
+        card_no = ?,
         is_deleted = 0,
         is_archived = ?,
         is_check = ?
@@ -146,6 +150,7 @@ async function updateRecord(billNo, record) {
       record.unit,
       record.price,
       record.amount,
+      record.card_no || null,
       record.is_archived ?? 0,
       record.is_check ?? 0,
       billNo
@@ -175,6 +180,7 @@ async function getAllArchivedRecords() {
       unit,
       price,
       amount,
+      card_no,
       is_deleted,
       is_archived,
       is_check
