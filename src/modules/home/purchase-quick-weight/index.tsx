@@ -226,7 +226,7 @@ export default function PurchaseQuickWeight() {
         unit: recordToSave.unit,
         price: recordToSave.price,
         amount: recordToSave.amount ? Math.round(recordToSave.amount) : 0,
-        card_no: recordToSave.card_no || null,
+        card_no: recordToSave.is_archived === 1 ? null : (recordToSave.card_no || null),
         is_deleted: 0,
         is_archived: recordToSave.is_archived ?? 0,
         is_check: recordToSave.is_check ?? 0
