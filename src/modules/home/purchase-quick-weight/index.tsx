@@ -1004,6 +1004,20 @@ export default function PurchaseQuickWeight() {
           // 记录已在上方表格中，直接聚焦
           setSelectedId(recordId);
           console.log('找到记录并聚焦:', recordId);
+          // 自动调用皮重按钮逻辑
+          setTimeout(() => {
+            if (isStable && serialData && records.length > 0 && selectedId) {
+              console.log('条件满足，调用皮重逻辑');
+              handlePizhong();
+            } else {
+              console.log('条件不满足，无法调用皮重逻辑:', {
+                isStable,
+                serialData,
+                recordsLength: records.length,
+                selectedId
+              });
+            }
+          }, 100);
           return;
         } else {
           // 记录不在上方表格中，需要添加到上方表格并聚焦
@@ -1013,6 +1027,20 @@ export default function PurchaseQuickWeight() {
             // 如果已经存在，直接聚焦
             setSelectedId(recordId);
             console.log('记录已存在，直接聚焦:', recordId);
+            // 自动调用皮重按钮逻辑
+            setTimeout(() => {
+              if (isStable && serialData && records.length > 0 && selectedId) {
+                console.log('条件满足，调用皮重逻辑');
+                handlePizhong();
+              } else {
+                console.log('条件不满足，无法调用皮重逻辑:', {
+                  isStable,
+                  serialData,
+                  recordsLength: records.length,
+                  selectedId
+                });
+              }
+            }, 100);
             return;
           }
           
@@ -1051,6 +1079,20 @@ export default function PurchaseQuickWeight() {
           });
           setSelectedId(recordId);
           console.log('添加记录到上方表格并聚焦:', recordId);
+          // 自动调用皮重按钮逻辑
+          setTimeout(() => {
+            if (isStable && serialData && records.length > 0 && selectedId) {
+              console.log('条件满足，调用皮重逻辑');
+              handlePizhong();
+            } else {
+              console.log('条件不满足，无法调用皮重逻辑:', {
+                isStable,
+                serialData,
+                recordsLength: records.length,
+                selectedId
+              });
+            }
+          }, 100);
           return;
         }
       } else {
