@@ -1016,6 +1016,11 @@ export default function PurchaseQuickWeight() {
             return;
           }
           
+          // 额外检查：确保不会添加重复记录
+          console.log('准备添加记录到表格:', recordId);
+          console.log('当前表格中的记录数量:', records.length);
+          console.log('当前表格中的记录ID:', records.map(r => r.id));
+          
           const newRecord = {
             id: foundRecord.bill_no,
             dbId: foundRecord.id,
@@ -1034,7 +1039,16 @@ export default function PurchaseQuickWeight() {
           };
           
           // 添加到上方表格并聚焦
-          setRecords(prev => [newRecord, ...prev]);
+          setRecords(prev => {
+            // 再次检查是否已存在
+            const exists = prev.some(r => r.id === recordId);
+            if (exists) {
+              console.log('记录已存在于表格中，不重复添加:', recordId);
+              return prev;
+            }
+            console.log('添加新记录到表格:', recordId);
+            return [newRecord, ...prev];
+          });
           setSelectedId(recordId);
           console.log('添加记录到上方表格并聚焦:', recordId);
           return;
