@@ -205,6 +205,34 @@ async function updatePaymentStatus(billNo, isCheck) {
   return result.affectedRows > 0;
 }
 
+// 根据卡号查询记录
+async function getRecordsByCardNo(cardNo) {
+  const sql = `
+    SELECT 
+      id,
+      bill_no,
+      time,
+      supplier,
+      item,
+      maozhong,
+      pizhong,
+      jingzhong,
+      unit,
+      price,
+      amount,
+      card_no,
+      is_deleted,
+      is_archived,
+      is_check
+    FROM purchase_weight_records 
+    WHERE card_no = ? AND is_deleted = 0
+    ORDER BY time DESC
+  `;
+  const pool = getPool();
+  const [rows] = await pool.execute(sql, [cardNo]);
+  return rows;
+}
+
 module.exports = { 
   insertPurchaseWeightRecord,
   getAllActiveRecords,
@@ -212,5 +240,6 @@ module.exports = {
   deleteRecord,
   updateRecord,
   getAllArchivedRecords,
-  updatePaymentStatus
+  updatePaymentStatus,
+  getRecordsByCardNo
 };

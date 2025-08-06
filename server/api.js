@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
-const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords, updatePaymentStatus } = require('./purchaseWeightService');
+const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords, updatePaymentStatus, getRecordsByCardNo } = require('./purchaseWeightService');
 const { insertCard, updateCard, deleteCard, getAllCards, getCardById, batchInsertCards } = require('./cardService');
 const { loadConfig, reconnect } = require('./db');
 
@@ -245,6 +245,31 @@ app.put('/api/purchase-weight-payment/:billNo', async (req, res) => {
   } catch (err) {
     console.error('付款状态更新失败:', err);
     res.status(500).json({ code: 1, msg: '数据库更新失败', error: err.message });
+  }
+});
+
+// 根据卡号查询采购过磅记录
+app.get('/api/purchase-weight-by-card/:cardNo', async (req, res) => {
+  try {
+    const { cardNo } = req.params;
+    console.log('收到卡号查询请求，卡号:', cardNo);
+    
+    if (!cardNo) {
+      return res.status(400).json({ code: 1, msg: '卡号必填' });
+    }
+    
+    console.log('开始查询卡号对应的记录...');
+    const records = await getRecordsByCardNo(cardNo);
+    
+    console.log('查询结果:', records.length, '条记录');
+    res.json({ 
+      code: 0, 
+      msg: '查询成功', 
+      data: records 
+    });
+  } catch (err) {
+    console.error('卡号查询失败:', err);
+    res.status(500).json({ code: 1, msg: '数据库查询失败', error: err.message });
   }
 });
 

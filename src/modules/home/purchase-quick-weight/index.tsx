@@ -110,22 +110,10 @@ export default function PurchaseQuickWeight() {
 
     // 新增：全局监听RFID读卡事件，刷卡即新增
     const rfidHandler = (_event: any, cardId: string) => {
-      // 刷卡时只执行新增操作
-      const newId = handleAdd();
-      setSelectedId(newId);
-      // 刷卡后直接弹出单价输入框
-      setPriceDialogOpen(true);
-      setInputPrice("");
+      // 刷卡时先尝试用卡号查询数据
+      handleQueryByCardNo(cardId);
       
-      // 保存卡号到当前记录
-      setRecords(prev => prev.map(record => {
-        if (record.id === newId) {
-          return { ...record, card_no: cardId };
-        }
-        return record;
-      }));
-      
-      console.log('RFID刷卡触发新增，卡号:', cardId);
+      console.log('RFID刷卡触发查询，卡号:', cardId);
     };
     if (ipcRenderer) {
       ipcRenderer.on("rfid-data", rfidHandler);
@@ -485,7 +473,9 @@ export default function PurchaseQuickWeight() {
       }
       const jingzhong = Math.round(row.maozhong - pizhong);
       const amount = row.price ? Math.round((jingzhong * row.price) * 2) : 0;
-      const archivedRecord = { ...row, pizhong, jingzhong, amount, is_archived: 1 };
+      // 归档时将卡号字段置为空
+      const { card_no, ...recordWithoutCardNo } = row;
+      const archivedRecord = { ...recordWithoutCardNo, pizhong, jingzhong, amount, is_archived: 1 };
 
       // 移除上方表格的这条数据
       setRecords(records.filter(r => r.id !== selectedId));
@@ -875,22 +865,38 @@ export default function PurchaseQuickWeight() {
   });
 
   // 反审核：将选中归档数据移回上方表格
-  const handleUnAudit = () => {
+  const handleUnAudit = async () => {
     if (!selectedArchivedId) return;
     const toRestore = archivedRecords.find(r => r.id === selectedArchivedId);
     if (toRestore) {
-      // 检查是否已付款，已付款的记录不允许反审核
-      if (toRestore.is_check === 1) {
-        setError("已付款的记录不允许反审核！");
+      try {
+        console.log('准备反审核记录，单据号:', selectedArchivedId);
+        
+        // 调用后端反审核接口，修改is_archived为0
+        const response = await axios.put(`http://localhost:3001/api/purchase-weight/${selectedArchivedId}`, {
+          ...toRestore,
+          is_archived: 0
+        });
+        
+        console.log('反审核响应:', response.data);
+        
+        if (response.data.code === 0) {
+          // 反审核成功，更新本地状态
+          setRecords(prev => [...prev, { ...toRestore, is_archived: 0 }]);
+          setArchivedRecords(prev => prev.filter(r => r.id !== selectedArchivedId));
+          setSelectedArchivedId(null);
+          setSuccessMsg("反审核成功！");
+          setOpen(true);
+        } else {
+          setError(response.data.msg || "反审核失败！");
+          setOpen(true);
+        }
+      } catch (err) {
+        console.error('反审核错误详情:', err);
+        const errorMsg = (err as any).message || String(err);
+        setError("反审核失败：" + errorMsg);
         setOpen(true);
-        return;
       }
-      
-      setRecords(prev => [...prev, toRestore]);
-      setArchivedRecords(prev => prev.filter(r => r.id !== selectedArchivedId));
-      setSelectedArchivedId(null);
-      setSuccessMsg("反审核成功！");
-      setOpen(true);
     }
   };
   // 付款处理函数
@@ -972,6 +978,100 @@ export default function PurchaseQuickWeight() {
   useEffect(() => {
     handleQueryArchivedRecords();
   }, []);
+
+  // 新增：用卡号查询数据的接口
+  const handleQueryByCardNo = async (cardNo: string) => {
+    try {
+      console.log('用卡号查询数据:', cardNo);
+      const response = await axios.get(`http://localhost:3001/api/purchase-weight-by-card/${cardNo}`);
+      
+      if (response.data.code === 0 && response.data.data && response.data.data.length > 0) {
+        // 查询到数据，找到对应的记录并聚焦
+        const foundRecord = response.data.data[0]; // 取第一条记录
+        const recordId = foundRecord.bill_no;
+        
+        // 检查记录是否已归档，已归档的记录不应该添加到上方表格
+        if (foundRecord.is_archived === 1) {
+          console.log('找到的记录已归档，不添加到上方表格:', recordId);
+          setError(`卡号 ${cardNo} 对应的记录已归档，请在下方的归档数据中查看`);
+          setOpen(true);
+          return;
+        }
+        
+        // 在上方表格中查找该记录
+        const existingRecord = records.find(r => r.id === recordId);
+        if (existingRecord) {
+          // 记录已在上方表格中，直接聚焦
+          setSelectedId(recordId);
+          console.log('找到记录并聚焦:', recordId);
+          return;
+        } else {
+          // 记录不在上方表格中，需要添加到上方表格并聚焦
+          // 再次检查是否真的不存在（防止重复添加）
+          const isAlreadyInTable = records.some(r => r.id === recordId);
+          if (isAlreadyInTable) {
+            // 如果已经存在，直接聚焦
+            setSelectedId(recordId);
+            console.log('记录已存在，直接聚焦:', recordId);
+            return;
+          }
+          
+          const newRecord = {
+            id: foundRecord.bill_no,
+            dbId: foundRecord.id,
+            time: formatTime(foundRecord.time),
+            supplier: foundRecord.supplier,
+            item: foundRecord.item,
+            maozhong: foundRecord.maozhong ? Math.round(foundRecord.maozhong) : null,
+            pizhong: foundRecord.pizhong ? Math.round(foundRecord.pizhong) : null,
+            jingzhong: foundRecord.jingzhong ? Math.round(foundRecord.jingzhong) : null,
+            unit: foundRecord.unit,
+            price: foundRecord.price,
+            amount: foundRecord.amount ? Math.round(foundRecord.amount) : 0,
+            card_no: foundRecord.card_no || null,
+            is_archived: foundRecord.is_archived,
+            is_check: foundRecord.is_check || 0
+          };
+          
+          // 添加到上方表格并聚焦
+          setRecords(prev => [newRecord, ...prev]);
+          setSelectedId(recordId);
+          console.log('添加记录到上方表格并聚焦:', recordId);
+          return;
+        }
+      } else {
+        // 没有查询到数据，保持现有逻辑（新增记录）
+        console.log('未查询到卡号对应的记录，执行新增逻辑');
+        const newId = handleAdd();
+        setSelectedId(newId);
+        // 保存卡号到当前记录
+        setRecords(prev => prev.map(record => {
+          if (record.id === newId) {
+            return { ...record, card_no: cardNo };
+          }
+          return record;
+        }));
+        // 弹出单价输入框
+        setPriceDialogOpen(true);
+        setInputPrice("");
+      }
+    } catch (err) {
+      console.error('卡号查询错误:', err);
+      // 查询出错时，保持现有逻辑（新增记录）
+      const newId = handleAdd();
+      setSelectedId(newId);
+      // 保存卡号到当前记录
+      setRecords(prev => prev.map(record => {
+        if (record.id === newId) {
+          return { ...record, card_no: cardNo };
+        }
+        return record;
+      }));
+      // 弹出单价输入框
+      setPriceDialogOpen(true);
+      setInputPrice("");
+    }
+  };
 
   return (
     <Box
@@ -1359,7 +1459,6 @@ export default function PurchaseQuickWeight() {
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/公斤</TableCell>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>金额</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                       <span>付款状态</span>
