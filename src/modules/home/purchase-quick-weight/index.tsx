@@ -1068,204 +1068,246 @@ export default function PurchaseQuickWeight() {
     handleQueryArchivedRecords();
   }, []);
 
-  // 新增：用卡号查询数据的接口
+  // 刷卡逻辑：调用后端接口检索未归档数据，实现第一次和第二次刷卡的不同处理
   const handleQueryByCardNo = async (cardNo: string) => {
     try {
-      console.log('用卡号查询数据:', cardNo);
-      const response = await axios.get(`http://localhost:3001/api/purchase-weight-by-card/${cardNo}`);
+      console.log('🔍 刷卡事件，卡号:', cardNo);
+      
+      // 步骤1：调用后端接口查询该卡号的未归档数据
+      console.log('🌐 调用后端接口查询未归档数据...');
+      const response = await axios.get(`http://localhost:3001/api/purchase-weight-by-card/${cardNo}?is_archived=0`);
       
       if (response.data.code === 0 && response.data.data && response.data.data.length > 0) {
-        // 查询到数据，找到对应的记录并聚焦
-        const foundRecord = response.data.data[0]; // 取第一条记录
-        const recordId = foundRecord.bill_no;
+        // 查询到未归档数据，执行第二次刷卡逻辑
+        const foundRecord = response.data.data[0]; // 取第一条未归档记录
+        console.log('✅ 找到卡号绑定的未归档记录:', foundRecord.bill_no);
         
-        // 检查记录是否已归档，已归档的记录不应该添加到上方表格
-        if (foundRecord.is_archived === 1) {
-          console.log('找到的记录已归档，不添加到上方表格:', recordId);
-          setError(`卡号 ${cardNo} 对应的记录已归档，请在下方的归档数据中查看`);
-          setOpen(true);
-          return;
-        }
+                 // 检查记录是否已经在当前表格中
+         let existingRecord = records.find(r => r.id === foundRecord.bill_no);
+         
+         if (!existingRecord) {
+           // 记录不在当前表格中，需要添加到表格
+           console.log('📥 将数据库记录添加到当前表格');
+           const newRecord = {
+             id: foundRecord.bill_no,
+             dbId: foundRecord.id,
+             time: formatTime(foundRecord.time),
+             supplier: foundRecord.supplier,
+             item: foundRecord.item,
+             maozhong: foundRecord.maozhong ? Math.round(foundRecord.maozhong) : null,
+             pizhong: foundRecord.pizhong ? Math.round(foundRecord.pizhong) : null,
+             jingzhong: foundRecord.jingzhong ? Math.round(foundRecord.jingzhong) : null,
+             unit: foundRecord.unit,
+             price: foundRecord.price,
+             amount: foundRecord.amount ? Math.round(foundRecord.amount) : 0,
+             card_no: foundRecord.card_no || null,
+             is_archived: foundRecord.is_archived,
+             is_check: foundRecord.is_check || 0
+           };
+           
+           // 使用函数式更新，确保不会重复添加
+           setRecords(prev => {
+             // 再次检查是否已存在（防止并发问题）
+             const alreadyExists = prev.some(r => r.id === foundRecord.bill_no);
+             if (alreadyExists) {
+               console.log('⚠️ 记录已存在，跳过添加:', foundRecord.bill_no);
+               return prev;
+             }
+             console.log('✅ 添加新记录到表格:', foundRecord.bill_no);
+             return [newRecord, ...prev];
+           });
+           
+           // 确保 existingRecord 指向正确的记录
+           existingRecord = newRecord;
+         } else {
+           console.log('📍 记录已在表格中，直接使用:', existingRecord.id);
+         }
         
-        // 在上方表格中查找该记录
-        const existingRecord = records.find(r => r.id === recordId);
-        if (existingRecord) {
-          // 记录已在上方表格中，直接聚焦
-          setSelectedId(recordId);
-          console.log('找到记录并聚焦:', recordId);
-          // 先设置毛重，然后调用皮重逻辑
-          setTimeout(() => {
-            if (serialData) {
-              // 先设置毛重
-              const maozhong = Math.round(Number(serialData));
-              setRecords(prev => prev.map(record => {
-                if (record.id === recordId) {
-                  return { ...record, maozhong };
-                }
-                return record;
-              }));
-              console.log('已设置毛重:', maozhong);
-              
-              // 延迟一下再调用皮重逻辑
-              setTimeout(() => {
-                if (isStable && serialData && records.length > 0 && selectedId) {
-                  console.log('条件满足，调用皮重逻辑');
-                  handlePizhong();
-                } else {
-                  console.log('条件不满足，无法调用皮重逻辑:', {
-                    isStable,
-                    serialData,
-                    recordsLength: records.length,
-                    selectedId
-                  });
-                }
-              }, 200);
-            } else {
-              console.log('没有重量数据，无法设置毛重');
-            }
-          }, 100);
-          return;
-        } else {
-          // 记录不在上方表格中，需要添加到上方表格并聚焦
-          // 再次检查是否真的不存在（防止重复添加）
-          const isAlreadyInTable = records.some(r => r.id === recordId);
-          if (isAlreadyInTable) {
-            // 如果已经存在，直接聚焦
-            setSelectedId(recordId);
-            console.log('记录已存在，直接聚焦:', recordId);
-            // 先设置毛重，然后调用皮重逻辑
-            setTimeout(() => {
-              if (serialData) {
-                // 先设置毛重
-                const maozhong = Math.round(Number(serialData));
-                setRecords(prev => prev.map(record => {
-                  if (record.id === recordId) {
-                    return { ...record, maozhong };
-                  }
-                  return record;
-                }));
-                console.log('已设置毛重:', maozhong);
-                
-                // 延迟一下再调用皮重逻辑
-                setTimeout(() => {
-                  if (isStable && serialData && records.length > 0 && selectedId) {
-                    console.log('条件满足，调用皮重逻辑');
-                    handlePizhong();
-                  } else {
-                    console.log('条件不满足，无法调用皮重逻辑:', {
-                      isStable,
-                      serialData,
-                      recordsLength: records.length,
-                      selectedId
-                    });
-                  }
-                }, 200);
-              } else {
-                console.log('没有重量数据，无法设置毛重');
-              }
-            }, 100);
-            return;
-          }
-          
-          // 额外检查：确保不会添加重复记录
-          console.log('准备添加记录到表格:', recordId);
-          console.log('当前表格中的记录数量:', records.length);
-          console.log('当前表格中的记录ID:', records.map(r => r.id));
-          
-          const newRecord = {
-            id: foundRecord.bill_no,
-            dbId: foundRecord.id,
-            time: formatTime(foundRecord.time),
-            supplier: foundRecord.supplier,
-            item: foundRecord.item,
-            maozhong: foundRecord.maozhong ? Math.round(foundRecord.maozhong) : null,
-            pizhong: foundRecord.pizhong ? Math.round(foundRecord.pizhong) : null,
-            jingzhong: foundRecord.jingzhong ? Math.round(foundRecord.jingzhong) : null,
-            unit: foundRecord.unit,
-            price: foundRecord.price,
-            amount: foundRecord.amount ? Math.round(foundRecord.amount) : 0,
-            card_no: foundRecord.card_no || null,
-            is_archived: foundRecord.is_archived,
-            is_check: foundRecord.is_check || 0
-          };
-          
-          // 添加到上方表格并聚焦
-          setRecords(prev => {
-            // 再次检查是否已存在
-            const exists = prev.some(r => r.id === recordId);
-            if (exists) {
-              console.log('记录已存在于表格中，不重复添加:', recordId);
-              return prev;
-            }
-            console.log('添加新记录到表格:', recordId);
-            return [newRecord, ...prev];
-          });
-          setSelectedId(recordId);
-          console.log('添加记录到上方表格并聚焦:', recordId);
-          // 先设置毛重，然后调用皮重逻辑
-          setTimeout(() => {
-            if (serialData) {
-              // 先设置毛重
-              const maozhong = Math.round(Number(serialData));
-              setRecords(prev => prev.map(record => {
-                if (record.id === recordId) {
-                  return { ...record, maozhong };
-                }
-                return record;
-              }));
-              console.log('已设置毛重:', maozhong);
-              
-              // 延迟一下再调用皮重逻辑
-              setTimeout(() => {
-                if (isStable && serialData && records.length > 0 && selectedId) {
-                  console.log('条件满足，调用皮重逻辑');
-                  handlePizhong();
-                } else {
-                  console.log('条件不满足，无法调用皮重逻辑:', {
-                    isStable,
-                    serialData,
-                    recordsLength: records.length,
-                    selectedId
-                  });
-                }
-              }, 200);
-            } else {
-              console.log('没有重量数据，无法设置毛重');
-            }
-          }, 100);
-          return;
-        }
-      } else {
-        // 没有查询到数据，保持现有逻辑（新增记录）
-        console.log('未查询到卡号对应的记录，执行新增逻辑');
-        const newId = handleAdd();
-        setSelectedId(newId);
-        // 保存卡号到当前记录
-        setRecords(prev => prev.map(record => {
-          if (record.id === newId) {
-            return { ...record, card_no: cardNo };
-          }
-          return record;
-        }));
-        // 弹出单价输入框
-        setPriceDialogOpen(true);
-        setInputPrice("");
+                 // 步骤3：聚焦到该条数据，并记录皮重并归档
+         console.log('📍 设置选中记录ID:', existingRecord.id);
+         setSelectedId(existingRecord.id);
+         
+         // 检查是否具备记录皮重的条件
+         if (!existingRecord.maozhong) {
+           setError("该记录缺少毛重数据，无法记录皮重");
+           setOpen(true);
+           return;
+         }
+         
+         if (!existingRecord.price) {
+           setError("该记录缺少单价数据，无法完成归档");
+           setOpen(true);
+           return;
+         }
+         
+         console.log('📝 第二次刷卡，自动执行皮重操作，当前重量:', serialData);
+         
+         // 延迟一下确保状态已更新，然后直接调用皮重处理函数
+         setTimeout(async () => {
+           console.log('🎯 调用皮重处理函数，模拟点击皮重按钮');
+           
+           // 重新获取当前状态（闭包问题）
+           const currentRecords = records;
+           const currentSelectedId = selectedId;
+           const currentSerialData = serialData;
+           const currentIsStable = isStable;
+           
+           console.log('🔍 检查皮重函数调用条件:', {
+             isStable: currentIsStable,
+             serialData: currentSerialData,
+             recordsLength: currentRecords.length,
+             selectedId: currentSelectedId,
+             existingRecordId: existingRecord.id
+           });
+           
+           // 无论条件如何，都直接执行皮重逻辑（因为是刷卡触发的自动操作）
+           console.log('🔄 直接执行皮重逻辑（刷卡自动操作）');
+           
+           // 使用传入的 existingRecord，而不是从 records 中查找
+           const row = existingRecord;
+           if (!row || row.maozhong == null) {
+             console.log('❌ 记录无效，缺少毛重:', row);
+             setError("记录缺少毛重数据，无法完成归档");
+             setOpen(true);
+             return;
+           }
+             
+             // 获取当前重量，优先使用最新的串口数据
+             let currentWeight = 0;
+             if (currentSerialData && currentSerialData.trim() !== '') {
+               currentWeight = Math.round(Number(currentSerialData));
+               console.log('📊 使用串口数据作为皮重:', currentWeight);
+             } else if (serialData && serialData.trim() !== '') {
+               currentWeight = Math.round(Number(serialData));
+               console.log('📊 使用闭包串口数据作为皮重:', currentWeight);
+             } else {
+               console.log('⚠️ 没有重量数据，询问用户是否继续');
+               const confirmed = window.confirm('当前没有检测到重量数据，是否使用0作为皮重继续归档？');
+               if (!confirmed) {
+                 console.log('❌ 用户取消操作');
+                 return;
+               }
+               currentWeight = 0;
+               console.log('📊 用户确认使用0作为皮重');
+             }
+             
+             const pizhong = currentWeight;
+             console.log('📊 皮重数据确认:', pizhong, '毛重:', row.maozhong);
+             
+             // 检查皮重是否合理
+             if (pizhong > 0 && pizhong >= row.maozhong) {
+               console.log('❌ 皮重验证失败: 皮重', pizhong, '>=', '毛重', row.maozhong);
+               
+               // 询问用户是否继续
+               const continueAnyway = window.confirm(
+                 `检测到异常情况：\n` +
+                 `当前皮重（${pizhong}kg）大于等于毛重（${row.maozhong}kg）\n\n` +
+                 `这通常表示：\n` +
+                 `1. 车辆第二次称重时没有卸货\n` +
+                 `2. 称重设备读数异常\n\n` +
+                 `是否仍要继续归档？\n` +
+                 `（继续将导致净重为负数或零）`
+               );
+               
+               if (!continueAnyway) {
+                 console.log('❌ 用户取消归档操作');
+                 setError("归档已取消：皮重不能大于等于毛重");
+                 setOpen(true);
+                 return;
+               }
+               
+               console.log('⚠️ 用户确认继续归档（皮重异常）');
+             }
+             
+             console.log('✅ 皮重验证通过，开始计算');
+             const jingzhong = Math.round(row.maozhong - pizhong);
+             const amount = row.price ? Math.round((jingzhong * row.price) * 2) : 0;
+             
+             console.log('🧮 计算结果详情:', {
+               毛重: row.maozhong,
+               皮重: pizhong,
+               净重: jingzhong,
+               单价: row.price,
+               金额: amount
+             });
+             
+             // 归档时将卡号字段置为空
+             const { card_no, ...recordWithoutCardNo } = row;
+             const archivedRecord = { ...recordWithoutCardNo, pizhong, jingzhong, amount, is_archived: 1 };
+             
+             // 移除上方表格的这条数据
+             console.log('📤 准备从上方表格移除记录:', existingRecord.id);
+             console.log('📊 移除前上方表格记录数:', records.length);
+             setRecords(prev => {
+               const newRecords = prev.filter(r => r.id !== existingRecord.id);
+               console.log('📊 移除后上方表格记录数:', newRecords.length);
+               return newRecords;
+             });
+             
+             // 保存归档数据到数据库
+             console.log('💾 准备保存归档数据:', archivedRecord);
+             try {
+               await autoSaveRecord(existingRecord.id, "皮重已记录并归档完成！", archivedRecord);
+               console.log('✅ 归档数据保存成功');
+               
+               // 刷新下方表格
+               console.log('🔄 刷新归档表格');
+               await handleQueryArchivedRecords();
+               console.log('✅ 归档表格刷新完成');
+               
+               // 取消选中状态
+               console.log('🎯 取消选中状态');
+               setSelectedId(null);
+               console.log('✅ 第二次刷卡处理完成');
+             } catch (error) {
+               console.error('❌ 保存归档数据失败:', error);
+               setError("保存归档数据失败: " + error);
+               setOpen(true);
+             }
+         }, 500);
+        
+        return;
       }
-    } catch (err) {
-      console.error('卡号查询错误:', err);
-      // 查询出错时，保持现有逻辑（新增记录）
-      const newId = handleAdd();
+      
+      // 步骤2：没有查到该卡号绑定的数据时，新增一条数据，并弹出单价输入框
+      console.log('❌ 未找到卡号绑定的记录，创建新记录');
+      
+      // 获取当前重量作为毛重
+      const currentWeight = serialData ? Math.round(Number(serialData)) : 0;
+      
+      // 创建新记录，直接包含卡号和毛重
+      const newId = genId();
+      const newRecord = {
+        id: newId,
+        dbId: undefined, // 新增记录没有数据库ID
+        time: getTime(),
+        supplier: "散户", // 默认赋值"散户"
+        item: "小麦", // 默认为小麦
+        maozhong: currentWeight > 0 ? currentWeight : null, // 直接设置毛重
+        pizhong: null,
+        jingzhong: null,
+        unit: "公斤",
+        price: null,
+        amount: 0,
+        card_no: cardNo, // 直接设置卡号
+        is_archived: 0
+      };
+      
+      // 添加到记录列表并选中
+      setRecords(prev => [newRecord, ...prev]);
       setSelectedId(newId);
-      // 保存卡号到当前记录
-      setRecords(prev => prev.map(record => {
-        if (record.id === newId) {
-          return { ...record, card_no: cardNo };
-        }
-        return record;
-      }));
+      
+      console.log('✅ 新记录已创建:', newId, '卡号:', cardNo, '毛重:', currentWeight);
+      
       // 弹出单价输入框
+      console.log('💰 弹出单价输入框');
+      setInputPrice(""); // 先清空输入
       setPriceDialogOpen(true);
-      setInputPrice("");
+      
+    } catch (err) {
+      console.error('❌ 刷卡处理错误:', err);
+      setError("刷卡处理失败，请重试");
+      setOpen(true);
     }
   };
 
@@ -1852,20 +1894,23 @@ export default function PurchaseQuickWeight() {
             autoFocus
             margin="dense"
             label="单价 (元/斤)"
-            type="number"
+            type="text"
             fullWidth
             value={inputPrice}
             onChange={(e) => {
               const value = e.target.value;
+              console.log('💰 单价输入变化:', value);
               // 限制只能输入数字和一个小数点，且小数点后最多两位
               if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
                 setInputPrice(value);
               }
             }}
+            onFocus={() => {
+              console.log('💰 单价输入框获得焦点');
+            }}
+            placeholder="请输入单价"
             inputProps={{
-              min: 0,
-              step: 0.01,
-              pattern: "\\d*\\.?\\d{0,2}",
+              inputMode: 'decimal',
               style: { fontSize: 22, padding: '14px 12px', borderRadius: 8 }
             }}
             sx={{
