@@ -86,6 +86,15 @@ export default function PurchaseQuickWeight() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   // 公司名称状态
   const [companyName, setCompanyName] = useState("一磅通");
+  
+  // 确认对话框状态
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmDialogData, setConfirmDialogData] = useState({
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    onCancel: () => {}
+  });
 
   // 新增：缩放比例
   const DESIGN_WIDTH = 2560; // 设计稿宽度
@@ -1030,6 +1039,25 @@ export default function PurchaseQuickWeight() {
   // 按钮大小
   const bigBtnStyle = { fontSize: 20, px: 1, py: 1, minWidth: 90 };
 
+  // 通用确认对话框函数
+  const showConfirmDialog = (title: string, message: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setConfirmDialogData({
+        title,
+        message,
+        onConfirm: () => {
+          setConfirmDialogOpen(false);
+          resolve(true);
+        },
+        onCancel: () => {
+          setConfirmDialogOpen(false);
+          resolve(false);
+        }
+      });
+      setConfirmDialogOpen(true);
+    });
+  };
+
   // 查询所有归档记录到下方表格
   const handleQueryArchivedRecords = async () => {
     try {
@@ -1182,7 +1210,10 @@ export default function PurchaseQuickWeight() {
                console.log('📊 使用闭包串口数据作为皮重:', currentWeight);
              } else {
                console.log('⚠️ 没有重量数据，询问用户是否继续');
-               const confirmed = window.confirm('当前没有检测到重量数据，是否使用0作为皮重继续归档？');
+               const confirmed = await showConfirmDialog(
+                 '重量数据异常',
+                 '当前没有检测到重量数据，是否使用0作为皮重继续归档？'
+               );
                if (!confirmed) {
                  console.log('❌ 用户取消操作');
                  return;
@@ -1199,14 +1230,9 @@ export default function PurchaseQuickWeight() {
                console.log('❌ 皮重验证失败: 皮重', pizhong, '>=', '毛重', row.maozhong);
                
                // 询问用户是否继续
-               const continueAnyway = window.confirm(
-                 `检测到异常情况：\n` +
-                 `当前皮重（${pizhong}kg）大于等于毛重（${row.maozhong}kg）\n\n` +
-                 `这通常表示：\n` +
-                 `1. 车辆第二次称重时没有卸货\n` +
-                 `2. 称重设备读数异常\n\n` +
-                 `是否仍要继续归档？\n` +
-                 `（继续将导致净重为负数或零）`
+               const continueAnyway = await showConfirmDialog(
+                 '称重数据异常',
+                 `检测到异常情况：\n当前皮重（${pizhong}kg）大于等于毛重（${row.maozhong}kg）\n\n这通常表示：\n1. 车辆第二次称重时没有卸货\n2. 称重设备读数异常\n\n是否仍要继续归档？\n（继续将导致净重为负数或零）`
                );
                
                if (!continueAnyway) {
@@ -1931,6 +1957,86 @@ export default function PurchaseQuickWeight() {
           <Button onClick={handlePriceConfirm} variant="contained" sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5, fontWeight: 700 }}>确定</Button>
         </DialogActions>
       </Dialog>
+      
+      {/* 通用确认对话框 */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={confirmDialogData.onCancel}
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            boxShadow: 6,
+            minWidth: 400,
+            background: 'linear-gradient(90deg, #e3eafc 0%, #fff 100%)',
+            p: 1
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: '#ff9800', 
+          fontWeight: 800, 
+          fontSize: 22, 
+          letterSpacing: 1, 
+          textAlign: 'center', 
+          pb: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 1
+        }}>
+          <span style={{ fontSize: '24px' }}>⚠️</span>
+          {confirmDialogData.title}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ 
+            fontSize: 18, 
+            lineHeight: 1.6, 
+            textAlign: 'center',
+            whiteSpace: 'pre-line',
+            color: '#424242'
+          }}>
+            {confirmDialogData.message}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2, pt: 1 }}>
+          <Button 
+            onClick={confirmDialogData.onCancel} 
+            sx={{ 
+              fontSize: 18, 
+              borderRadius: 3, 
+              px: 4, 
+              py: 1.5,
+              color: '#666',
+              borderColor: '#ddd',
+              '&:hover': {
+                borderColor: '#999',
+                backgroundColor: '#f5f5f5'
+              }
+            }}
+            variant="outlined"
+          >
+            取消
+          </Button>
+          <Button 
+            onClick={confirmDialogData.onConfirm} 
+            variant="contained" 
+            sx={{ 
+              fontSize: 18, 
+              borderRadius: 3, 
+              px: 4, 
+              py: 1.5, 
+              fontWeight: 700,
+              backgroundColor: '#ff9800',
+              '&:hover': {
+                backgroundColor: '#f57c00'
+              }
+            }}
+          >
+            确定
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
       {/* 删除确认对话框 */}
       <Dialog
         open={deleteConfirmOpen}
