@@ -432,6 +432,67 @@ export default function PurchaseQuickWeight() {
     setDeleteConfirmId(null);
   };
 
+  // 自动打印归档记录
+  const handleAutoPrint = async (recordToPrint: RecordItem) => {
+    try {
+      console.log('🖨️ 准备打印归档记录:', recordToPrint.id);
+      
+      // 检查必要字段
+      if (!recordToPrint.maozhong || !recordToPrint.jingzhong) {
+        console.log('❌ 打印记录缺少必要数据');
+        setError("打印记录必须包含毛重和净重信息！");
+        setOpen(true);
+        return;
+      }
+
+      // 准备打印数据，按照JSON格式
+      const printData = {
+        bill_no: recordToPrint.id,
+        print_time: recordToPrint.time || new Date().toLocaleString('zh-CN'),
+        item: recordToPrint.item,
+        gross_weight: `${recordToPrint.maozhong}kg`,
+        tare_weight: `${recordToPrint.pizhong || 0}kg`,
+        net_weight: `${recordToPrint.jingzhong}kg`,
+        price: String(recordToPrint.price || 0),
+        amount: String(recordToPrint.amount || 0),
+        supplier: recordToPrint.supplier,
+        unit: recordToPrint.unit,
+        card_no: recordToPrint.card_no || '',
+        company_name: companyName
+      };
+
+      // 转换为JSON字符串，然后转换为Base64
+      const jsonString = JSON.stringify(printData);
+      const base64Data = Buffer.from(jsonString).toString('base64');
+      
+      console.log('🔄 准备自动打印数据:', printData);
+      console.log('📤 Base64编码:', base64Data);
+
+      // 调用打印脚本
+      if (runPythonScript) {
+        runPythonScript(base64Data, (error: any, result: any) => {
+          if (error) {
+            console.error('自动打印失败:', error);
+            setError(`自动打印失败: ${error.message}`);
+            setOpen(true);
+          } else {
+            console.log('自动打印成功:', result);
+            setSuccessMsg("归档并打印成功！");
+            setOpen(true);
+          }
+        });
+      } else {
+        console.log('⚠️ 打印功能不可用');
+        setError("打印功能不可用，请检查环境配置！");
+        setOpen(true);
+      }
+    } catch (error) {
+      console.error('自动打印数据转换失败:', error);
+      setError(`自动打印失败: ${(error as any).message}`);
+      setOpen(true);
+    }
+  };
+
   // 打印选中记录
   const handlePrint = () => {
     if (!selectedId) {
@@ -580,6 +641,11 @@ export default function PurchaseQuickWeight() {
 
       // 保存归档数据到数据库
       await autoSaveRecord(selectedId, "皮重已保存！", archivedRecord);
+      
+      // 自动打印归档记录
+      console.log('🖨️ 手动皮重归档后自动打印');
+      await handleAutoPrint(archivedRecord);
+      
       // 刷新下方表格
       handleQueryArchivedRecords();
     }
@@ -1280,6 +1346,10 @@ export default function PurchaseQuickWeight() {
                console.log('🔄 刷新归档表格');
                await handleQueryArchivedRecords();
                console.log('✅ 归档表格刷新完成');
+               
+               // 自动打印归档记录
+               console.log('🖨️ 开始自动打印归档记录');
+               await handleAutoPrint(archivedRecord);
                
                // 取消选中状态
                console.log('🎯 取消选中状态');
