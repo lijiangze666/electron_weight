@@ -10,9 +10,232 @@ const menuItems = [
   { key: "user", label: "用户管理" },
   { key: "role", label: "权限设置" },
   { key: "base", label: "基础配置" },
+  { key: "company", label: "公司配置" },
   { key: "db", label: "数据库连接配置" },
   { key: "card", label: "一卡通设置" },
 ];
+
+function CompanySetting() {
+  const [companyName, setCompanyName] = React.useState('一磅通');
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editingName, setEditingName] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [message, setMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // 加载公司名称配置
+  const loadCompanyConfig = async () => {
+    try {
+      setLoading(true);
+      // 从localStorage或配置文件加载，如果没有则使用默认值
+      const savedName = localStorage.getItem('companyName');
+      if (savedName) {
+        setCompanyName(savedName);
+      }
+    } catch (error) {
+      console.error('加载公司配置失败:', error);
+      setMessage({ type: 'error', text: '加载公司配置失败' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 保存公司名称
+  const handleSaveCompanyName = async () => {
+    if (!editingName.trim()) {
+      setMessage({ type: 'error', text: '公司名称不能为空' });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // 保存到localStorage
+      localStorage.setItem('companyName', editingName.trim());
+      setCompanyName(editingName.trim());
+      setIsEditing(false);
+      setMessage({ type: 'success', text: '公司名称保存成功' });
+
+      // 触发全局事件，通知其他组件更新
+      window.dispatchEvent(new CustomEvent('companyNameChanged', { 
+        detail: { companyName: editingName.trim() } 
+      }));
+    } catch (error) {
+      console.error('保存公司名称失败:', error);
+      setMessage({ type: 'error', text: '保存公司名称失败' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 开始编辑
+  const handleStartEdit = () => {
+    setEditingName(companyName);
+    setIsEditing(true);
+  };
+
+  // 取消编辑
+  const handleCancelEdit = () => {
+    setEditingName('');
+    setIsEditing(false);
+  };
+
+  // 组件加载时获取配置
+  React.useEffect(() => {
+    loadCompanyConfig();
+  }, []);
+
+  return (
+    <Box sx={{ maxWidth: 600 }}>
+      {/* 公司名称配置 */}
+      <Paper sx={{ p: 4, mb: 3, background: 'linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%)' }}>
+        <Typography variant="h6" sx={{ mb: 3, color: '#1976d2', fontWeight: 700, letterSpacing: 1 }}>
+          📢 公司名称配置
+        </Typography>
+        
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* 当前公司名称显示 */}
+          <Box sx={{ 
+            p: 3, 
+            border: '2px solid #e3f2fd', 
+            borderRadius: 2, 
+            background: '#ffffff',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Box>
+              <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+                当前公司名称：
+              </Typography>
+              <Typography variant="h5" sx={{ 
+                color: '#1976d2', 
+                fontWeight: 700,
+                letterSpacing: 1
+              }}>
+                {companyName}
+              </Typography>
+            </Box>
+            {!isEditing && (
+              <Button
+                variant="outlined"
+                onClick={handleStartEdit}
+                disabled={loading}
+                sx={{ 
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  '&:hover': { 
+                    borderColor: '#1565c0', 
+                    background: 'rgba(25, 118, 210, 0.04)' 
+                  }
+                }}
+              >
+                编辑
+              </Button>
+            )}
+          </Box>
+
+          {/* 编辑表单 */}
+          {isEditing && (
+            <Paper sx={{ p: 3, border: '2px solid #2196f3', borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+                编辑公司名称
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <TextField
+                  label="公司名称"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  placeholder="请输入公司名称"
+                  autoFocus
+                  sx={{ 
+                    minWidth: 300,
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: '#1976d2',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1976d2',
+                      },
+                    }
+                  }}
+                  disabled={loading}
+                />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSaveCompanyName}
+                    disabled={!editingName.trim() || loading}
+                    sx={{ 
+                      background: '#1976d2',
+                      '&:hover': { background: '#1565c0' },
+                      minWidth: 80
+                    }}
+                  >
+                    保存
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={handleCancelEdit}
+                    disabled={loading}
+                    sx={{ 
+                      borderColor: '#666',
+                      color: '#666',
+                      '&:hover': { 
+                        borderColor: '#444', 
+                        background: 'rgba(0, 0, 0, 0.04)' 
+                      },
+                      minWidth: 80
+                    }}
+                  >
+                    取消
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          )}
+
+          {/* 使用说明 */}
+          <Box sx={{ 
+            p: 2, 
+            background: '#f0f7ff', 
+            borderRadius: 2,
+            border: '1px solid #bbdefb'
+          }}>
+            <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 600, mb: 1 }}>
+              💡 使用说明：
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2, color: '#333' }}>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                公司名称将在打印小票时显示
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                修改后需要点击"保存"按钮才能生效
+              </Typography>
+              <Typography component="li" variant="body2">
+                建议使用简短、易识别的公司名称
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* 消息提示 */}
+      <Snackbar
+        open={!!message}
+        autoHideDuration={3000}
+        onClose={() => setMessage(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setMessage(null)}
+          severity={message?.type}
+          sx={{ width: '100%' }}
+        >
+          {message?.text}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+}
 
 function CardSetting() {
   const [cards, setCards] = React.useState<Array<{ id: string; cardNumber: string; description: string; dbId?: number }>>([]);
@@ -320,6 +543,8 @@ export default function SystemSettings() {
         return <Typography>这里是权限设置内容</Typography>;
       case "base":
         return <Typography>这里是基础配置内容</Typography>;
+      case "company":
+        return <CompanySetting />;
       case "db":
         return <DatabaseConfig />;
       case "card":

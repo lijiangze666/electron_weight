@@ -219,7 +219,8 @@ class PrinterDemo:
             dll.PrintAndFeedLine(self.handle)
         dll.PrintAndFeedLine(self.handle)
         dll.PrintText(self.handle, "------------------------".encode("gbk"), 1, 16)
-        dll.PrintText(self.handle, f"公司名称：\r\n".encode("gbk"), 1, 0)
+        company_name = data.get("company_name", "")
+        dll.PrintText(self.handle, f"公司名称：{company_name}\r\n".encode("gbk"), 1, 0)
         dll.CutPaperWithDistance(self.handle, 10)
 
     def __del__(self):
