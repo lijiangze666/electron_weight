@@ -1129,6 +1129,76 @@ export default function PurchaseQuickWeight() {
       }
     }
   };
+  // 打印已归档记录
+  const handlePrintArchived = () => {
+    if (!selectedArchivedId) {
+      setError("请先选择要打印的记录！");
+      setOpen(true);
+      return;
+    }
+
+    const recordToPrint = archivedRecords.find(r => r.id === selectedArchivedId);
+    if (!recordToPrint) {
+      setError("未找到要打印的记录！");
+      setOpen(true);
+      return;
+    }
+
+    // 检查必要字段
+    if (!recordToPrint.maozhong || !recordToPrint.jingzhong) {
+      setError("打印记录必须包含毛重和净重信息！");
+      setOpen(true);
+      return;
+    }
+
+    // 准备打印数据，按照JSON格式
+    const printData = {
+      bill_no: recordToPrint.id,
+      print_time: recordToPrint.time || new Date().toLocaleString('zh-CN'),
+      item: recordToPrint.item,
+      gross_weight: `${recordToPrint.maozhong}kg`,
+      tare_weight: `${recordToPrint.pizhong || 0}kg`,
+      net_weight: `${recordToPrint.jingzhong}kg`,
+      price: String(recordToPrint.price || 0),
+      amount: String(recordToPrint.amount || 0),
+      supplier: recordToPrint.supplier,
+      unit: recordToPrint.unit,
+      card_no: recordToPrint.card_no || '',
+      company_name: companyName
+    };
+
+    try {
+      // 转换为JSON字符串，然后转换为Base64
+      const jsonString = JSON.stringify(printData);
+      const base64Data = Buffer.from(jsonString).toString('base64');
+      
+      console.log('🔄 准备打印已归档数据:', printData);
+      console.log('📤 Base64编码:', base64Data);
+
+      // 调用打印脚本
+      if (runPythonScript) {
+        runPythonScript(base64Data, (error: any, result: any) => {
+          if (error) {
+            console.error('打印失败:', error);
+            setError(`打印失败: ${error.message}`);
+            setOpen(true);
+          } else {
+            console.log('打印成功:', result);
+            setSuccessMsg("打印成功！");
+            setOpen(true);
+          }
+        });
+      } else {
+        setError("打印功能不可用，请检查环境配置！");
+        setOpen(true);
+      }
+    } catch (error) {
+      console.error('数据转换失败:', error);
+      setError(`数据转换失败: ${(error as any).message}`);
+      setOpen(true);
+    }
+  };
+
   // 付款处理函数
   const handlePayment = async () => {
     if (!selectedArchivedId) return;
@@ -1902,6 +1972,20 @@ export default function PurchaseQuickWeight() {
               }}
             >
               {archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? "已付款" : "付款"}
+            </Button>
+            <Button
+              variant="contained"
+              color="info"
+              onClick={handlePrintArchived}
+              disabled={!selectedArchivedId}
+              sx={{ 
+                ...bigBtnStyle, 
+                borderRadius: 3, 
+                boxShadow: 2, 
+                fontWeight: 700
+              }}
+            >
+              打印
             </Button>
           </div>
           <TableContainer
