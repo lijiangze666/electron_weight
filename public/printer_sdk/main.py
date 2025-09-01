@@ -214,7 +214,7 @@ class PrinterDemo:
         bill_no = data.get("bill_no", "")
         if bill_no:
             dll.SetAlign(self.handle, 0)
-            dll.PrintSymbol(self.handle, 49, bill_no.encode('gbk'), 48, 10, 10, 1)
+            dll.PrintSymbol(self.handle, 49, bill_no.encode(), 48, 10, 10, 1)
             dll.SetAlign(self.handle, 0)
             dll.PrintAndFeedLine(self.handle)
         dll.PrintAndFeedLine(self.handle)
