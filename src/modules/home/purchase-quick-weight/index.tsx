@@ -87,6 +87,11 @@ export default function PurchaseQuickWeight() {
   // 公司名称状态
   const [companyName, setCompanyName] = useState("一磅通");
   
+  // 扫码器相关状态
+  const [isScanning, setIsScanning] = useState(false);
+  const scanBufferRef = useRef<string>("");
+  const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   // 确认对话框状态
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmDialogData, setConfirmDialogData] = useState({
@@ -116,6 +121,61 @@ export default function PurchaseQuickWeight() {
       }
     };
     ipcRenderer.on("serialport-data", handler);
+
+    // 添加键盘监听，用于扫码器输入
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // 如果正在编辑单元格或打开了对话框，不处理扫码器输入
+      if (editingCell || editingArchivedCell || priceDialogOpen || confirmDialogOpen || deleteConfirmOpen) {
+        return;
+      }
+
+      // 检查是否为普通字符输入（排除功能键）
+      if (event.key.length === 1 || /^[0-9A-Za-z]$/.test(event.key)) {
+        // 防止扫码器输入触发页面其他功能
+        event.preventDefault();
+        
+        // 累积扫码内容
+        scanBufferRef.current += event.key;
+        setIsScanning(true);
+
+        // 清除之前的超时
+        if (scanTimeoutRef.current) {
+          clearTimeout(scanTimeoutRef.current);
+        }
+
+        // 设置超时，如果300ms内没有新的输入，认为扫码结束
+        scanTimeoutRef.current = setTimeout(() => {
+          const scannedCode = scanBufferRef.current.trim();
+          if (scannedCode.length > 0) {
+            console.log('扫码器输入内容:', scannedCode);
+            handleQRCodeScan(scannedCode);
+          }
+          // 重置扫码状态
+          scanBufferRef.current = "";
+          setIsScanning(false);
+        }, 300);
+      }
+      // 处理回车键（部分扫码器会发送回车）
+      else if (event.key === 'Enter' && scanBufferRef.current.length > 0) {
+        event.preventDefault();
+        
+        // 清除超时
+        if (scanTimeoutRef.current) {
+          clearTimeout(scanTimeoutRef.current);
+        }
+
+        const scannedCode = scanBufferRef.current.trim();
+        console.log('扫码器输入内容（回车结束）:', scannedCode);
+        handleQRCodeScan(scannedCode);
+        
+        // 重置扫码状态
+        scanBufferRef.current = "";
+        setIsScanning(false);
+      }
+    };
+
+    // 添加键盘事件监听
+    document.addEventListener('keydown', handleKeyDown);
     
     // 页面加载时默认查询所有数据到上方表格
     handleQueryAllRecords();
@@ -153,6 +213,12 @@ export default function PurchaseQuickWeight() {
       }
       // 移除公司名称变更监听
       window.removeEventListener('companyNameChanged', companyNameChangeHandler);
+      // 移除键盘事件监听
+      document.removeEventListener('keydown', handleKeyDown);
+      // 清理扫码超时
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -1162,6 +1228,64 @@ export default function PurchaseQuickWeight() {
     handleQueryArchivedRecords();
   }, []);
 
+  // 处理二维码扫描
+  const handleQRCodeScan = async (billNo: string) => {
+    try {
+      console.log('🔍 处理二维码扫描，单据号:', billNo);
+      
+      // 查询该单据号的已归档记录
+      console.log('🌐 查询已归档记录...');
+      const response = await axios.get('http://localhost:3001/api/purchase-weight-archived');
+      
+      if (response.data.code === 0 && response.data.data) {
+        // 在已归档记录中查找匹配的单据号
+        const foundRecord = response.data.data.find((record: any) => record.bill_no === billNo);
+        
+        if (!foundRecord) {
+          setError(`单据号 ${billNo} 不存在或未归档`);
+          setOpen(true);
+          return;
+        }
+        
+        console.log('✅ 找到归档记录:', foundRecord);
+        
+        // 检查付款状态
+        if (foundRecord.is_check === 1) {
+          // 已付款，显示提示
+          setError("该笔交易已付款，不可再次扫描");
+          setOpen(true);
+          return;
+        }
+        
+        // 未付款，更新付款状态
+        console.log('💰 更新付款状态为已付款...');
+        const updateResponse = await axios.put(`http://localhost:3001/api/purchase-weight-payment/${billNo}`, {
+          is_check: 1
+        });
+        
+        if (updateResponse.data.code === 0) {
+          setSuccessMsg(`单据 ${billNo} 付款成功！`);
+          setOpen(true);
+          
+          // 刷新归档表格
+          await handleQueryArchivedRecords();
+          console.log('✅ 付款状态更新成功并刷新表格');
+        } else {
+          setError(updateResponse.data.msg || "付款状态更新失败");
+          setOpen(true);
+        }
+      } else {
+        setError("查询归档记录失败");
+        setOpen(true);
+      }
+    } catch (err) {
+      console.error('❌ 二维码扫描处理错误:', err);
+      const errorMsg = (err as any).message || String(err);
+      setError("处理二维码扫描失败：" + errorMsg);
+      setOpen(true);
+    }
+  };
+
   // 刷卡逻辑：调用后端接口检索未归档数据，实现第一次和第二次刷卡的不同处理
   const handleQueryByCardNo = async (cardNo: string) => {
     try {
@@ -1951,6 +2075,28 @@ export default function PurchaseQuickWeight() {
         >
           {serialData || <span>--</span>}
         </div>
+        
+        {/* 扫码器状态提示 */}
+        {isScanning && (
+          <div
+            style={{
+              background: "linear-gradient(135deg, #4caf50 0%, #81c784 100%)",
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: 18,
+              padding: "8px 16px",
+              borderRadius: 8,
+              textAlign: "center",
+              marginBottom: 16,
+              minWidth: 200,
+              boxShadow: '0 2px 8px 0 rgba(76, 175, 80, 0.4)',
+              animation: "pulse 1.5s ease-in-out infinite"
+            }}
+          >
+            🔍 正在扫描二维码...
+          </div>
+        )}
+        
         <div style={{ display: "flex", gap: 24, marginBottom: 32 }}>
           <Button
             variant="contained"
