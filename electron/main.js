@@ -64,6 +64,8 @@ function startMockSerial() {
 let rfidBuffer = '';
 let rfidTimeout = null;
 let lastInputTime = 0;
+let firstInputTime = 0;
+
 
 function startRFIDListener() {
   // 监听主窗口的键盘输入
@@ -73,6 +75,8 @@ function startRFIDListener() {
     window.rfidListenerRegistered = true;
     
     window.webContents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown') return;
+
       const currentTime = Date.now();
       
       // 如果输入的是数字或字母（十六进制字符）
@@ -81,26 +85,36 @@ function startRFIDListener() {
         const timeDiff = currentTime - lastInputTime;
         lastInputTime = currentTime;
         
+
+        // 如果是第一个字符，记录开始时间
+        if (rfidBuffer.length === 0) {
+          firstInputTime = currentTime;
+        }
+
         // 如果间隔很短，认为是RFID刷卡
-        if (timeDiff < 50) {
+        if (rfidBuffer.length === 0 || timeDiff < 50) {
           rfidBuffer += input.key.toUpperCase();
-          
-          // 清除之前的超时
-          if (rfidTimeout) {
-            clearTimeout(rfidTimeout);
-          }
+           // 设置 500ms 的超时清空
+           if (rfidTimeout) clearTimeout(rfidTimeout);
+           rfidTimeout = setTimeout(() => {
+             rfidBuffer = '';
+           }, 500);
+          // // 清除之前的超时
+          // if (rfidTimeout) {
+          //   clearTimeout(rfidTimeout);
+          // }
           
           // 设置超时，如果500ms内没有新输入，认为卡号读取完成
-          rfidTimeout = setTimeout(() => {
-            if (rfidBuffer.length > 0) {
-              console.log('RFID读到卡号:', rfidBuffer);
-              // 发送RFID数据到渲染进程
-              BrowserWindow.getAllWindows().forEach(win => {
-                win.webContents.send('rfid-data', rfidBuffer);
-              });
-              rfidBuffer = '';
-            }
-          }, 500);
+          // rfidTimeout = setTimeout(() => {
+          //   if (rfidBuffer.length > 0) {
+          //     console.log('RFID读到卡号:', rfidBuffer);
+          //     // 发送RFID数据到渲染进程
+          //     BrowserWindow.getAllWindows().forEach(win => {
+          //       win.webContents.send('rfid-data', rfidBuffer);
+          //     });
+          //     rfidBuffer = '';
+          //   }
+          // }, 500);
         }
         // 如果间隔较长，认为是手动输入，不处理
       }
@@ -108,10 +122,18 @@ function startRFIDListener() {
       else if (input.key === 'Enter') {
         if (rfidBuffer.length > 0) {
           console.log('RFID读到卡号:', rfidBuffer);
-          // 发送RFID数据到渲染进程
-          BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('rfid-data', rfidBuffer);
-          });
+          const duration = currentTime - firstInputTime;
+
+           // ✅ 判断条件：长度 >= 6 && 总时长 < 300ms
+           if (rfidBuffer.length >= 6 && duration < 300) {
+            console.log('RFID刷卡识别成功:', rfidBuffer);
+            BrowserWindow.getAllWindows().forEach(win => {
+              win.webContents.send('rfid-data', rfidBuffer);
+            });
+          } else {
+            console.log('普通键盘输入，不处理:', rfidBuffer);
+          }
+
           rfidBuffer = '';
         }
         // 清除超时
@@ -201,7 +223,7 @@ function createLoginWindow() {
     // 在开发环境中，加载开发服务器的 URL，并添加登录页面的路由
     win.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/login");
     // 打开开发者工具，方便调试
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
   } else {
     // 在生产环境中，加载打包后的 HTML 文件
     win.loadFile(path.join(__dirname, "../dist/index.html"), {
@@ -289,7 +311,7 @@ function createMainWindow() {
   } else {
     // 在生产环境中，加载打包后的 HTML 文件
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
-      hash: "/home", // 使用 hash 路由加载首页
+      hash: "/home", // 使用 hash 路由加载首页 
     });
   }
 
@@ -300,7 +322,7 @@ function createMainWindow() {
     // 最大化窗口
     mainWindow.maximize();
     // 打开调试工具
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
   });
 
   // 监听窗口的最大化事件

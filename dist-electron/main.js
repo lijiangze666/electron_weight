@@ -46,36 +46,39 @@ function startMockSerial() {
 let rfidBuffer = "";
 let rfidTimeout = null;
 let lastInputTime = 0;
+let firstInputTime = 0;
 function startRFIDListener() {
   app.on("browser-window-created", (event, window) => {
     if (window.rfidListenerRegistered) return;
     window.rfidListenerRegistered = true;
     window.webContents.on("before-input-event", (event2, input) => {
+      if (input.type !== "keyDown") return;
       const currentTime = Date.now();
       if (/^[0-9A-Fa-f]$/.test(input.key)) {
         const timeDiff = currentTime - lastInputTime;
         lastInputTime = currentTime;
-        if (timeDiff < 50) {
+        if (rfidBuffer.length === 0) {
+          firstInputTime = currentTime;
+        }
+        if (rfidBuffer.length === 0 || timeDiff < 50) {
           rfidBuffer += input.key.toUpperCase();
-          if (rfidTimeout) {
-            clearTimeout(rfidTimeout);
-          }
+          if (rfidTimeout) clearTimeout(rfidTimeout);
           rfidTimeout = setTimeout(() => {
-            if (rfidBuffer.length > 0) {
-              console.log("RFID读到卡号:", rfidBuffer);
-              BrowserWindow.getAllWindows().forEach((win) => {
-                win.webContents.send("rfid-data", rfidBuffer);
-              });
-              rfidBuffer = "";
-            }
+            rfidBuffer = "";
           }, 500);
         }
       } else if (input.key === "Enter") {
         if (rfidBuffer.length > 0) {
           console.log("RFID读到卡号:", rfidBuffer);
-          BrowserWindow.getAllWindows().forEach((win) => {
-            win.webContents.send("rfid-data", rfidBuffer);
-          });
+          const duration = currentTime - firstInputTime;
+          if (rfidBuffer.length >= 6 && duration < 300) {
+            console.log("RFID刷卡识别成功:", rfidBuffer);
+            BrowserWindow.getAllWindows().forEach((win) => {
+              win.webContents.send("rfid-data", rfidBuffer);
+            });
+          } else {
+            console.log("普通键盘输入，不处理:", rfidBuffer);
+          }
           rfidBuffer = "";
         }
         if (rfidTimeout) {
@@ -150,7 +153,6 @@ function createLoginWindow() {
   Menu.setApplicationMenu(null);
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL + "/#/login");
-    win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"), {
       hash: "/login"
@@ -223,13 +225,12 @@ function createMainWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
       hash: "/home"
-      // 使用 hash 路由加载首页
+      // 使用 hash 路由加载首页 
     });
   }
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
     mainWindow.maximize();
-    mainWindow.webContents.openDevTools();
   });
   mainWindow.on("maximize", () => {
     console.log("Window maximized");
