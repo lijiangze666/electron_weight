@@ -1144,6 +1144,13 @@ export default function PurchaseQuickWeight() {
       return;
     }
 
+    // 检查是否已付款
+    if (recordToPrint.is_check === 1) {
+      setError("已付款的记录不允许打印！");
+      setOpen(true);
+      return;
+    }
+
     // 检查必要字段
     if (!recordToPrint.maozhong || !recordToPrint.jingzhong) {
       setError("打印记录必须包含毛重和净重信息！");
@@ -1199,12 +1206,31 @@ export default function PurchaseQuickWeight() {
     }
   };
 
-  // 付款处理函数
-  const handlePayment = async () => {
+  // 付款确认处理函数
+  const handlePayment = () => {
     if (!selectedArchivedId) return;
     
     const recordToPay = archivedRecords.find(r => r.id === selectedArchivedId);
     if (!recordToPay) return;
+    
+    // 显示确认对话框
+    setConfirmDialogData({
+      title: "确认付款",
+      message: `确定要将单据 ${selectedArchivedId} 标记为已付款吗？\n\n供应商：${recordToPay.supplier || '未知'}\n商品：${recordToPay.item || '未知'}\n金额：${recordToPay.amount || 0} 元\n\n付款后将无法再次打印和修改该记录。`,
+      onConfirm: () => {
+        setConfirmDialogOpen(false);
+        executePayment();
+      },
+      onCancel: () => {
+        setConfirmDialogOpen(false);
+      }
+    });
+    setConfirmDialogOpen(true);
+  };
+
+  // 执行付款操作
+  const executePayment = async () => {
+    if (!selectedArchivedId) return;
     
     try {
       console.log('准备更新付款状态，单据号:', selectedArchivedId);
@@ -1977,15 +2003,19 @@ export default function PurchaseQuickWeight() {
               variant="contained"
               color="info"
               onClick={handlePrintArchived}
-              disabled={!selectedArchivedId}
+              disabled={!selectedArchivedId || (archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1)}
               sx={{ 
                 ...bigBtnStyle, 
                 borderRadius: 3, 
                 boxShadow: 2, 
-                fontWeight: 700
+                fontWeight: 700,
+                backgroundColor: archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? '#9e9e9e' : '#0288d1',
+                '&:hover': {
+                  backgroundColor: archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? '#9e9e9e' : '#0277bd',
+                }
               }}
             >
-              打印
+              {archivedRecords.find(r => r.id === selectedArchivedId)?.is_check === 1 ? "已付款" : "打印"}
             </Button>
           </div>
           <TableContainer
