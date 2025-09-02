@@ -10,7 +10,7 @@ import AddIcon from '@mui/icons-material/Add';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import axios from 'axios';
 
 // 统计数据接口
@@ -47,11 +47,6 @@ interface ChartData {
     purchaseWeight: number;
     salesCount: number;
     salesWeight: number;
-  }>;
-  supplierDistribution: Array<{
-    name: string;
-    count: number;
-    weight: number;
   }>;
 }
 
@@ -420,52 +415,7 @@ export default function HomeMain({ onNavigate }: HomeMainProps) {
         </Paper>
       </Box>
 
-      {/* 供应商分布图 */}
-      {chartData?.supplierDistribution && chartData.supplierDistribution.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Paper sx={{ p: 2, borderRadius: 3, boxShadow: 2 }}>
-            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-              供应商分布（按重量排序）
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData.supplierDistribution} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  type="number"
-                  tick={{ fontSize: 12 }}
-                  stroke="#666"
-                />
-                <YAxis 
-                  type="category"
-                  dataKey="name"
-                  tick={{ fontSize: 12 }}
-                  stroke="#666"
-                  width={80}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    border: '1px solid #ddd',
-                    borderRadius: 8,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                  }}
-                  formatter={(value: number, name: string) => [
-                    name === 'weight' ? `${value} 吨` : `${value} 次`,
-                    name === 'weight' ? '总重量' : '过磅次数'
-                  ]}
-                />
-                <Bar 
-                  dataKey="weight" 
-                  fill="#1976d2" 
-                  name="总重量(吨)"
-                  radius={[0, 4, 4, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Box>
-      )}
+
 
       {/* 最新动态/过磅记录 */}
       <Box sx={{ mt: 5 }}>

@@ -7,9 +7,9 @@ import axios from 'axios';
 import DatabaseConfig from '../settings/DatabaseConfig';
 
 const menuItems = [
-  { key: "user", label: "用户管理" },
-  { key: "role", label: "权限设置" },
-  { key: "base", label: "基础配置" },
+  // { key: "user", label: "用户管理" },
+  // { key: "role", label: "权限设置" },
+  // { key: "base", label: "基础配置" },
   { key: "company", label: "公司配置" },
   { key: "db", label: "数据库连接配置" },
   { key: "card", label: "一卡通设置" },
@@ -533,16 +533,16 @@ function CardSetting() {
 }
 
 export default function SystemSettings() {
-  const [selected, setSelected] = React.useState("user");
+  const [selected, setSelected] = React.useState("company");
 
   const renderContent = () => {
     switch (selected) {
-      case "user":
-        return <Typography>这里是用户管理内容</Typography>;
-      case "role":
-        return <Typography>这里是权限设置内容</Typography>;
-      case "base":
-        return <Typography>这里是基础配置内容</Typography>;
+      // case "user":
+      //   return <Typography>这里是用户管理内容</Typography>;
+      // case "role":
+      //   return <Typography>这里是权限设置内容</Typography>;
+      // case "base":
+      //   return <Typography>这里是基础配置内容</Typography>;
       case "company":
         return <CompanySetting />;
       case "db":
