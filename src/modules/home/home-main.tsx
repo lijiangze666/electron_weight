@@ -108,12 +108,12 @@ export default function HomeMain({ onNavigate }: HomeMainProps) {
     loadChartData();
     
     // 每30秒自动刷新数据
-    const interval = setInterval(() => {
-      loadStatistics();
-      loadChartData();
-    }, 30000);
+    // const interval = setInterval(() => {
+    //   loadStatistics();
+    //   loadChartData();
+    // }, 30000);
     
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, []);
 
   // 如果正在加载，显示加载状态
