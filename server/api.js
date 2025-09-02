@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
-const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords, updatePaymentStatus, getRecordsByCardNo } = require('./purchaseWeightService');
+const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords, updatePaymentStatus, getRecordsByCardNo, getHomeStatistics, getChartData } = require('./purchaseWeightService');
 const { insertCard, updateCard, deleteCard, getAllCards, getCardById, batchInsertCards } = require('./cardService');
 const { loadConfig, reconnect } = require('./db');
 
@@ -270,6 +270,44 @@ app.get('/api/purchase-weight-by-card/:cardNo', async (req, res) => {
   } catch (err) {
     console.error('卡号查询失败:', err);
     res.status(500).json({ code: 1, msg: '数据库查询失败', error: err.message });
+  }
+});
+
+// ========== 首页统计接口 ==========
+
+// 获取首页统计数据
+app.get('/api/home-statistics', async (req, res) => {
+  try {
+    console.log('收到首页统计数据请求');
+    const statistics = await getHomeStatistics();
+    
+    console.log('首页统计数据:', statistics);
+    res.json({ 
+      code: 0, 
+      msg: '获取统计数据成功', 
+      data: statistics 
+    });
+  } catch (err) {
+    console.error('获取首页统计数据失败:', err);
+    res.status(500).json({ code: 1, msg: '获取统计数据失败', error: err.message });
+  }
+});
+
+// 获取图表数据
+app.get('/api/chart-data', async (req, res) => {
+  try {
+    console.log('收到图表数据请求');
+    const chartData = await getChartData();
+    
+    console.log('图表数据:', chartData);
+    res.json({ 
+      code: 0, 
+      msg: '获取图表数据成功', 
+      data: chartData 
+    });
+  } catch (err) {
+    console.error('获取图表数据失败:', err);
+    res.status(500).json({ code: 1, msg: '获取图表数据失败', error: err.message });
   }
 });
 

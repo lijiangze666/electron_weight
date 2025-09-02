@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, Tab, Box, Typography, Paper } from "@mui/material";
+import { Tabs, Tab, Box, Paper } from "@mui/material";
 import PurchaseQuickWeight from "./purchase-quick-weight";
 import SystemSettings from "./system-settings";
 import HomeMain from "./home-main";
@@ -72,7 +72,7 @@ export default function HomePage() {
           backgroundColor: "#f5f5f5",
         }}
       >
-        {tab === 0 && <HomeMain />}
+        {tab === 0 && <HomeMain onNavigate={setTab} />}
         {tab === 1 && <PurchaseQuickWeight />}
         {tab === 2 && <SystemSettings />}
       </Box>
