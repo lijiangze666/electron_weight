@@ -235,7 +235,7 @@ export default function PurchaseQuickWeight() {
   }, []);
 
   // 生成随机单据号
-  const genId = () => Math.random().toString(36).slice(2, 10).toUpperCase();
+  const genId = () => Math.random().toString(36).slice(2, 10).padEnd(8,'0').toUpperCase();
   
   // 格式化时间为 yyyy-MM-dd HH:mm:ss
   const formatTime = (time: any) => {
