@@ -137,7 +137,7 @@ export default function PurchaseQuickWeight() {
         event.preventDefault();
         
         // 累积扫码内容
-        scanBufferRef.current += event.key;
+        scanBufferRef.current += event.key.toUpperCase(); 
         setIsScanning(true);
 
         // 清除之前的超时
@@ -148,9 +148,11 @@ export default function PurchaseQuickWeight() {
         // 设置超时，如果300ms内没有新的输入，认为扫码结束
         scanTimeoutRef.current = setTimeout(() => {
           const scannedCode = scanBufferRef.current.trim();
-          if (scannedCode.length > 0) {
-            console.log('扫码器输入内容:', scannedCode);
+          if (isValidScanCode(scannedCode)) {
+            console.log('✅ 有效扫码内容:', scannedCode);
             handleQRCodeScan(scannedCode);
+          } else {
+            console.warn('❌ 无效扫码内容:', scannedCode);
           }
           // 重置扫码状态
           scanBufferRef.current = "";
@@ -158,22 +160,22 @@ export default function PurchaseQuickWeight() {
         }, 300);
       }
       // 处理回车键（部分扫码器会发送回车）
-      else if (event.key === 'Enter' && scanBufferRef.current.length > 0) {
-        event.preventDefault();
+      // else if (event.key === 'Enter' && scanBufferRef.current.length > 0) {
+      //   event.preventDefault();
         
-        // 清除超时
-        if (scanTimeoutRef.current) {
-          clearTimeout(scanTimeoutRef.current);
-        }
+      //   // 清除超时
+      //   if (scanTimeoutRef.current) {
+      //     clearTimeout(scanTimeoutRef.current);
+      //   }
 
-        const scannedCode = scanBufferRef.current.trim();
-        console.log('扫码器输入内容（回车结束）:', scannedCode);
-        handleQRCodeScan(scannedCode);
+      //   const scannedCode = scanBufferRef.current.trim();
+      //   console.log('扫码器输入内容（回车结束）:', scannedCode);
+      //   handleQRCodeScan(scannedCode);
         
-        // 重置扫码状态
-        scanBufferRef.current = "";
-        setIsScanning(false);
-      }
+      //   // 重置扫码状态
+      //   scanBufferRef.current = "";
+      //   setIsScanning(false);
+      // }
     };
 
     // 添加键盘事件监听
