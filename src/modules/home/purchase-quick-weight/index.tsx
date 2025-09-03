@@ -121,9 +121,11 @@ export default function PurchaseQuickWeight() {
       }
     };
     ipcRenderer.on("serialport-data", handler);
+    // 匹配8位大写字母和数字的正则表达式（匹配单据号）
+    const isValidScanCode = (code: string) => /^[A-Z0-9]{8}$/.test(code);
 
     // 添加键盘监听，用于扫码器输入
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent) => { 
       // 如果正在编辑单元格或打开了对话框，不处理扫码器输入
       if (editingCell || editingArchivedCell || priceDialogOpen || confirmDialogOpen || deleteConfirmOpen) {
         return;
