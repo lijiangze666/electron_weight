@@ -91,6 +91,8 @@ export default function PurchaseQuickWeight() {
   const [isScanning, setIsScanning] = useState(false);
   const scanBufferRef = useRef<string>("");
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastKeyTimeRef = useRef<number>(0);
+  const keyIntervalThreshold = 50; // 扫码器输入间隔阈值（毫秒）
   
   // 确认对话框状态
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -133,31 +135,56 @@ export default function PurchaseQuickWeight() {
 
       // 检查是否为普通字符输入（排除功能键）
       if (event.key.length === 1 || /^[0-9A-Za-z]$/.test(event.key)) {
-        // 防止扫码器输入触发页面其他功能
-        event.preventDefault();
+        const currentTime = Date.now();
+        const timeSinceLastKey = currentTime - lastKeyTimeRef.current;
         
-        // 累积扫码内容
-        scanBufferRef.current += event.key.toUpperCase(); 
-        setIsScanning(true);
-
-        // 清除之前的超时
-        if (scanTimeoutRef.current) {
-          clearTimeout(scanTimeoutRef.current);
-        }
-
-        // 设置超时，如果300ms内没有新的输入，认为扫码结束
-        scanTimeoutRef.current = setTimeout(() => {
-          const scannedCode = scanBufferRef.current.trim();
-          if (isValidScanCode(scannedCode)) {
-            console.log('✅ 有效扫码内容:', scannedCode);
-            handleQRCodeScan(scannedCode);
-          } else {
-            console.warn('❌ 无效扫码内容:', scannedCode);
+        // 如果是第一个字符，或者输入间隔很短（扫码器特征），则可能是扫码器输入
+        const isPossibleScannerInput = scanBufferRef.current.length === 0 || timeSinceLastKey < keyIntervalThreshold;
+        
+        if (isPossibleScannerInput) {
+          // 防止扫码器输入触发页面其他功能
+          event.preventDefault();
+          
+          // 累积扫码内容
+          scanBufferRef.current += event.key.toUpperCase();
+          lastKeyTimeRef.current = currentTime;
+          
+          // 只有在累积了一定字符后才显示扫描提示（避免误触发）
+          if (scanBufferRef.current.length >= 3) {
+            setIsScanning(true);
           }
-          // 重置扫码状态
-          scanBufferRef.current = "";
-          setIsScanning(false);
-        }, 300);
+
+          // 清除之前的超时
+          if (scanTimeoutRef.current) {
+            clearTimeout(scanTimeoutRef.current);
+          }
+
+          // 设置超时，如果300ms内没有新的输入，认为扫码结束
+          scanTimeoutRef.current = setTimeout(() => {
+            const scannedCode = scanBufferRef.current.trim();
+            if (isValidScanCode(scannedCode)) {
+              console.log('✅ 有效扫码内容:', scannedCode);
+              handleQRCodeScan(scannedCode);
+            } else {
+              console.warn('❌ 无效扫码内容:', scannedCode);
+            }
+            // 重置扫码状态
+            scanBufferRef.current = "";
+            setIsScanning(false);
+            lastKeyTimeRef.current = 0;
+          }, 300);
+        } else {
+          // 输入间隔较长，可能是手动输入，重置扫码缓冲区
+          if (scanBufferRef.current.length > 0) {
+            console.log('🔄 检测到手动输入，重置扫码缓冲区');
+            scanBufferRef.current = "";
+            setIsScanning(false);
+            lastKeyTimeRef.current = 0;
+            if (scanTimeoutRef.current) {
+              clearTimeout(scanTimeoutRef.current);
+            }
+          }
+        }
       }
       // 处理回车键（部分扫码器会发送回车）
       // else if (event.key === 'Enter' && scanBufferRef.current.length > 0) {
