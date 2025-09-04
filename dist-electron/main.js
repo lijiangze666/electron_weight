@@ -71,7 +71,8 @@ function startRFIDListener() {
         if (rfidBuffer.length > 0) {
           console.log("RFID读到卡号:", rfidBuffer);
           const duration = currentTime - firstInputTime;
-          if (rfidBuffer.length >= 6 && duration < 300) {
+          console.log("长度:", rfidBuffer.length, "时长:", duration);
+          if (rfidBuffer.length >= 6 && duration > 300) {
             console.log("RFID刷卡识别成功:", rfidBuffer);
             BrowserWindow.getAllWindows().forEach((win) => {
               win.webContents.send("rfid-data", rfidBuffer);
