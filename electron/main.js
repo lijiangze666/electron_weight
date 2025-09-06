@@ -148,6 +148,11 @@ function startRFIDListener() {
 
 // 监听渲染进程请求打开串口
 const { ipcMain } = require("electron");
+
+// 串口数据缓冲区
+let serialBuffer = '';
+let bufferTimeout = null;
+
 ipcMain.on("open-serialport", (event) => {
   // 如果启用模拟串口，直接返回
   if (process.env.MOCK_SERIAL === "1") {
@@ -168,8 +173,38 @@ ipcMain.on("open-serialport", (event) => {
   );
   // 监听串口数据
   serialPortInstance.on("data", (data) => {
-    // console.log("串口收到数据:", data.toString()); // 控制台打印已隐藏
-    mainWindow.webContents.send("serialport-data", data.toString());
+    const dataStr = data.toString();
+    console.log("串口收到数据:", dataStr, "原始字节:", Array.from(data)); // 临时启用调试
+    
+    // 将数据添加到缓冲区
+    serialBuffer += dataStr;
+    
+    // 清除之前的超时
+    if (bufferTimeout) {
+      clearTimeout(bufferTimeout);
+    }
+    
+    // 检查是否有完整的地磅数据包 (格式: +00002401D)
+    const completePacketMatch = serialBuffer.match(/([+-]\d{8}[A-Z])/g);
+    
+    if (completePacketMatch) {
+      // 找到完整数据包，发送最新的一个
+      const latestPacket = completePacketMatch[completePacketMatch.length - 1];
+      console.log("发送完整数据包:", latestPacket);
+      mainWindow.webContents.send("serialport-data", latestPacket);
+      
+      // 清空缓冲区
+      serialBuffer = '';
+    } else {
+      // 没有完整数据包，设置超时等待更多数据
+      bufferTimeout = setTimeout(() => {
+        if (serialBuffer.length > 0) {
+          console.log("超时发送缓冲区数据:", serialBuffer);
+          mainWindow.webContents.send("serialport-data", serialBuffer);
+          serialBuffer = '';
+        }
+      }, 100); // 100ms超时
+    }
   });
   // 监听串口错误
   serialPortInstance.on("error", (err) => {
