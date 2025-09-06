@@ -232,50 +232,50 @@ export default function PurchaseQuickWeight() {
         const rawWeight = parseInt(weightStr, 10);
         console.log("原始重量数值:", rawWeight);
         
-        // 分析转换规律：012908019 -> 12910
-        // 让我尝试分解这个9位数字：
-        // 0 1 2 9 0 8 0 1 9
-        // 0 1 2 9 1 0 (取前4位去掉前导0，然后可能是某种特殊组合)
+        // 重新分析转换规律
+        // 已知: 012908019 -> 12910, 某个数据 -> 12914 但显示成了 12920
+        // 让我尝试更简单直接的方法
         
         let actualWeight;
         
-        // 尝试多种可能的转换方式，并输出调试信息
-        console.log("开始分析9位数字:", weightStr);
+        console.log("🔍 开始分析9位数字:", weightStr, "原始数值:", rawWeight);
         
-        // 方案1: 简单除法
-        const div1000 = Math.round(rawWeight / 1000);
-        console.log("除以1000:", div1000);
+        // 尝试多种转换方式，找出正确的规律
         
-        // 方案2: 取前5位
-        const first5 = parseInt(weightStr.substring(0, 5), 10);
-        console.log("前5位:", first5);
+        // 方案1: 直接除以1000
+        const method1 = Math.round(rawWeight / 1000);
+        console.log("方案1 - 除以1000:", method1);
         
-        // 方案3: 去掉前导0后取前5位
-        const withoutZero = weightStr.replace(/^0+/, '');
-        const first5NoZero = parseInt(withoutZero.substring(0, 5), 10);
-        console.log("去前导0后前5位:", first5NoZero);
+        // 方案2: 除以100然后除以10 (相当于除以1000但可能有不同的舍入)
+        const method2 = Math.floor(rawWeight / 100) / 10;
+        console.log("方案2 - 除以100再除以10:", method2);
         
-        // 方案4: 特殊组合 - 可能是前4位 + 某种处理
-        const first4 = parseInt(weightStr.substring(0, 4), 10); // 0129 -> 129
-        const pos5 = parseInt(weightStr.substring(4, 5), 10); // 0
-        const pos6 = parseInt(weightStr.substring(5, 6), 10); // 8
-        console.log("前4位:", first4, "第5位:", pos5, "第6位:", pos6);
+        // 方案3: 取前6位然后除以100
+        const first6 = parseInt(weightStr.substring(0, 6), 10);
+        const method3 = Math.round(first6 / 100);
+        console.log("方案3 - 前6位除以100:", first6, "->", method3);
         
-        // 基于您说应该显示12910，让我尝试这个组合：
-        // 可能是：去掉第一个0，取前4位(1290)，然后加上第6位(8)？
-        // 1290 + 8 = 1298 (不对)
-        // 或者：1290 * 10 + 第6位 = 12908 (接近但不对)
-        // 或者：1290 * 10 + 某种处理 = 12910
+        // 方案4: 去掉前导0，取前5位，然后除以10
+        const withoutLeadingZero = weightStr.replace(/^0+/, '');
+        const method4 = Math.floor(parseInt(withoutLeadingZero.substring(0, 5), 10) / 10);
+        console.log("方案4 - 去前导0取前5位除以10:", withoutLeadingZero.substring(0, 5), "->", method4);
         
-        // 让我试试：前4位(去掉前导0) * 10 + 某个固定值
-        const base = parseInt(weightStr.substring(1, 5), 10); // 1290 (从第2位开始取4位)
-        actualWeight = base * 10; // 12900
+        // 方案5: 特殊的地磅协议解析
+        // 可能的格式: 前面是整数部分，后面是小数或校验位
+        // 012908019 可能表示 1290.8019，取整数部分再乘以10？
+        const integerPart = parseInt(weightStr.substring(1, 5), 10); // 1290
+        const decimalPart = parseInt(weightStr.substring(5, 6), 10); // 8
+        const method5 = integerPart * 10 + Math.round(decimalPart / 5); // 1290*10 + 8/5 = 12900 + 2 = 12902
+        console.log("方案5 - 特殊协议:", integerPart, "*10 +", Math.round(decimalPart / 5), "=", method5);
         
-        // 可能还需要加上后面某位的处理
-        const adjustment = Math.round(pos6 / 8) * 10; // 第6位是8，8/8=1，1*10=10
-        actualWeight += adjustment; // 12900 + 10 = 12910
+        // 方案6: 最简单的 - 就是除以1000然后四舍五入到最近的整数
+        const method6 = Math.round(rawWeight / 1000);
+        console.log("方案6 - 简单四舍五入:", method6);
         
-        console.log("最终计算:", base, "*10 +", adjustment, "=", actualWeight);
+        // 基于您的反馈，我先用最简单的方法6
+        actualWeight = method6;
+        
+        console.log("🎯 最终选择的重量:", actualWeight, "(使用方案6)");
         
         // 如果是负数，添加负号
         if (sign === '-') {
