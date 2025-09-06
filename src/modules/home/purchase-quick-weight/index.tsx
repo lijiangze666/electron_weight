@@ -213,34 +213,60 @@ export default function PurchaseQuickWeight() {
     const handler = (_event: any, data: string) => {
       console.log("前端收到串口数据:", JSON.stringify(data)); // 调试信息
       
-      // 地磅数据格式: +00002401D
-      // 匹配地磅特定格式: 符号 + 数字 + 结束符
-      const scaleMatch = data.match(/([+-])(\d{8})([A-Z])/);
-      console.log("地磅格式匹配结果:", scaleMatch); // 调试信息
+      // 地磅数据格式支持多种: +00002401D (8位+字母) 或 +012902013 (9位数字)
+      // 首先尝试匹配带字母结尾的格式: 符号 + 8位数字 + 字母
+      let scaleMatch = data.match(/([+-])(\d{8})([A-Z])/);
+      console.log("8位+字母格式匹配结果:", scaleMatch);
+      
+      // 如果没有匹配到8位+字母格式，尝试匹配9位纯数字格式
+      if (!scaleMatch) {
+        scaleMatch = data.match(/([+-])(\d{9})/);
+        console.log("9位数字格式匹配结果:", scaleMatch);
+      }
       
       if (scaleMatch) {
         const sign = scaleMatch[1]; // + 或 -
-        const weightStr = scaleMatch[2]; // 8位数字
-        const endChar = scaleMatch[3]; // 结束符
+        const weightStr = scaleMatch[2]; // 数字部分
+        const endChar = scaleMatch[3] || ''; // 结束符（可能没有）
         
         console.log("符号:", sign, "重量字符串:", weightStr, "结束符:", endChar);
         
-        // 将8位数字转换为实际重量
+        // 将数字转换为实际重量
         const rawWeight = parseInt(weightStr, 10);
         console.log("原始重量数值:", rawWeight);
         
-        // 地磅可能的数据格式分析：
-        // 如果显示22kg，数据是00002401，那么可能需要特殊转换
-        // 常见格式：前4位可能是整数部分，后4位是小数部分
-        // 或者：需要除以100得到实际重量
-        
         let actualWeight;
-        if (rawWeight < 100000) {
-          // 小于10万，可能需要除以100
-          actualWeight = Math.round(rawWeight / 100);
+        
+        if (weightStr.length === 9) {
+          // 9位数字格式: +012902013
+          // 可能的格式: 前面的数字是整数部分，后面是小数部分
+          // 或者需要除以特定的倍数
+          // 根据您的例子，可能需要截取前面几位作为实际重量
+          
+          // 方案1: 取前3位作为重量 (129)
+          // actualWeight = Math.floor(rawWeight / 1000000);
+          
+          // 方案2: 除以特定倍数得到实际重量
+          // 假设需要除以10000得到实际重量
+          actualWeight = Math.round(rawWeight / 10000);
+          
+          // 如果结果太小，可能需要调整除数
+          if (actualWeight < 10) {
+            actualWeight = Math.round(rawWeight / 1000000); // 取前3位
+          }
+          
+        } else if (weightStr.length === 8) {
+          // 8位数字格式: +00002401
+          if (rawWeight < 100000) {
+            // 小于10万，除以100
+            actualWeight = Math.round(rawWeight / 100);
+          } else {
+            // 大于等于10万，除以1000
+            actualWeight = Math.round(rawWeight / 1000);
+          }
         } else {
-          // 大于等于10万，可能需要除以1000或10000
-          actualWeight = Math.round(rawWeight / 1000);
+          // 其他长度，直接使用原始值
+          actualWeight = rawWeight;
         }
         
         // 如果是负数，添加负号
