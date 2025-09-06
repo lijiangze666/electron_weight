@@ -174,7 +174,7 @@ ipcMain.on("open-serialport", (event) => {
   // 监听串口数据
   serialPortInstance.on("data", (data) => {
     const dataStr = data.toString();
-    // console.log("串口收到数据:", dataStr, "原始字节:", Array.from(data)); // 临时启用调试
+    console.log("串口收到数据:", dataStr, "原始字节:", Array.from(data)); // 调试信息
     
     // 将数据添加到缓冲区
     serialBuffer += dataStr;
@@ -184,13 +184,23 @@ ipcMain.on("open-serialport", (event) => {
       clearTimeout(bufferTimeout);
     }
     
-    // 检查是否有完整的地磅数据包 (格式: +00002401D)
-    const completePacketMatch = serialBuffer.match(/([+-]\d{8}[A-Z])/g);
+    // 清理缓冲区中的控制字符 (STX=2, ETX=3)
+    const cleanedBuffer = serialBuffer.replace(/[\x02\x03]/g, '');
+    console.log("清理后的缓冲区:", JSON.stringify(cleanedBuffer));
+    
+    // 检查是否有完整的地磅数据包
+    // 支持两种格式: +012908019 (9位数字) 或 +00002401D (8位+字母)
+    let completePacketMatch = cleanedBuffer.match(/([+-]\d{9})(?![0-9])/g);
+    
+    if (!completePacketMatch) {
+      // 如果没有匹配到9位格式，尝试8位+字母格式
+      completePacketMatch = cleanedBuffer.match(/([+-]\d{8}[A-Z])/g);
+    }
     
     if (completePacketMatch) {
       // 找到完整数据包，发送最新的一个
       const latestPacket = completePacketMatch[completePacketMatch.length - 1];
-      // console.log("发送完整数据包:", latestPacket);
+      console.log("发送完整数据包:", latestPacket);
       mainWindow.webContents.send("serialport-data", latestPacket);
       
       // 清空缓冲区
@@ -199,8 +209,12 @@ ipcMain.on("open-serialport", (event) => {
       // 没有完整数据包，设置超时等待更多数据
       bufferTimeout = setTimeout(() => {
         if (serialBuffer.length > 0) {
-          // console.log("超时发送缓冲区数据:", serialBuffer);
-          mainWindow.webContents.send("serialport-data", serialBuffer);
+          console.log("超时发送缓冲区数据:", serialBuffer);
+          // 清理控制字符后发送
+          const cleanedData = serialBuffer.replace(/[\x02\x03]/g, '');
+          if (cleanedData.length > 0) {
+            mainWindow.webContents.send("serialport-data", cleanedData);
+          }
           serialBuffer = '';
         }
       }, 100); // 100ms超时
