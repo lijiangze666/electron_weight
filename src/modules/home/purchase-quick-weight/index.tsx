@@ -213,60 +213,50 @@ export default function PurchaseQuickWeight() {
     const handler = (_event: any, data: string) => {
       console.log("前端收到串口数据:", JSON.stringify(data)); // 调试信息
       
-      // 地磅数据格式支持多种: +00002401D (8位+字母) 或 +012902013 (9位数字)
-      // 首先尝试匹配带字母结尾的格式: 符号 + 8位数字 + 字母
-      let scaleMatch = data.match(/([+-])(\d{8})([A-Z])/);
-      console.log("8位+字母格式匹配结果:", scaleMatch);
+      // 清理数据：移除STX(ASCII 2)和ETX(ASCII 3)控制字符
+      const cleanedData = data.replace(/[\x02\x03]/g, '');
+      console.log("清理后的数据:", JSON.stringify(cleanedData));
       
-      // 如果没有匹配到8位+字母格式，尝试匹配9位纯数字格式
-      if (!scaleMatch) {
-        scaleMatch = data.match(/([+-])(\d{9})/);
-        console.log("9位数字格式匹配结果:", scaleMatch);
-      }
+      // 地磅数据格式: +012906017 (9位数字)
+      // 使用更宽松的正则表达式匹配完整的重量数据
+      const scaleMatch = cleanedData.match(/([+-])(\d{9})(?![0-9])/);
+      console.log("9位数字格式匹配结果:", scaleMatch);
       
       if (scaleMatch) {
         const sign = scaleMatch[1]; // + 或 -
-        const weightStr = scaleMatch[2]; // 数字部分
-        const endChar = scaleMatch[3] || ''; // 结束符（可能没有）
+        const weightStr = scaleMatch[2]; // 9位数字
         
-        console.log("符号:", sign, "重量字符串:", weightStr, "结束符:", endChar);
+        console.log("符号:", sign, "重量字符串:", weightStr);
         
-        // 将数字转换为实际重量
+        // 将9位数字转换为实际重量
         const rawWeight = parseInt(weightStr, 10);
         console.log("原始重量数值:", rawWeight);
         
+        // 对于+012906017这种格式，分析数据结构：
+        // 012906017 可能表示 129.06017 kg 或者需要特定的转换
+        // 根据常见地磅协议，可能需要除以特定倍数
+        
         let actualWeight;
         
-        if (weightStr.length === 9) {
-          // 9位数字格式: +012902013
-          // 可能的格式: 前面的数字是整数部分，后面是小数部分
-          // 或者需要除以特定的倍数
-          // 根据您的例子，可能需要截取前面几位作为实际重量
-          
-          // 方案1: 取前3位作为重量 (129)
-          // actualWeight = Math.floor(rawWeight / 1000000);
-          
-          // 方案2: 除以特定倍数得到实际重量
-          // 假设需要除以10000得到实际重量
-          actualWeight = Math.round(rawWeight / 10000);
-          
-          // 如果结果太小，可能需要调整除数
-          if (actualWeight < 10) {
-            actualWeight = Math.round(rawWeight / 1000000); // 取前3位
-          }
-          
-        } else if (weightStr.length === 8) {
-          // 8位数字格式: +00002401
-          if (rawWeight < 100000) {
-            // 小于10万，除以100
-            actualWeight = Math.round(rawWeight / 100);
-          } else {
-            // 大于等于10万，除以1000
-            actualWeight = Math.round(rawWeight / 1000);
-          }
+        // 方案1: 取前3-4位作为整数部分 (1290 或 129)
+        if (rawWeight >= 100000000) {
+          // 9位数，取前4位
+          actualWeight = Math.floor(rawWeight / 100000);
+        } else if (rawWeight >= 10000000) {
+          // 8位数，取前3位  
+          actualWeight = Math.floor(rawWeight / 1000000);
         } else {
-          // 其他长度，直接使用原始值
-          actualWeight = rawWeight;
+          // 更少位数，可能需要除以1000
+          actualWeight = Math.floor(rawWeight / 1000);
+        }
+        
+        // 如果结果看起来不合理，尝试其他转换方式
+        if (actualWeight > 10000) {
+          // 结果太大，可能需要除以更大的数
+          actualWeight = Math.floor(rawWeight / 1000000);
+        } else if (actualWeight < 1) {
+          // 结果太小，直接使用前几位
+          actualWeight = Math.floor(rawWeight / 1000000);
         }
         
         // 如果是负数，添加负号
@@ -277,19 +267,46 @@ export default function PurchaseQuickWeight() {
         console.log("计算后的实际重量:", actualWeight);
         setSerialData(`${actualWeight}`);
         setIsStable(true);
-      } else {
-        // 如果不匹配地磅格式，尝试简单的数字匹配
-        const simpleMatch = data.match(/[+-]?\d+/);
-        console.log("简单数字匹配结果:", simpleMatch);
         
-        if (simpleMatch) {
-          const weight = parseInt(simpleMatch[0], 10);
-          console.log("简单匹配的重量:", weight);
-          setSerialData(`${weight}`);
+      } else {
+        // 如果不匹配9位格式，尝试8位+字母格式
+        const legacyMatch = cleanedData.match(/([+-])(\d{8})([A-Z])/);
+        console.log("8位+字母格式匹配结果:", legacyMatch);
+        
+        if (legacyMatch) {
+          const sign = legacyMatch[1];
+          const weightStr = legacyMatch[2];
+          const rawWeight = parseInt(weightStr, 10);
+          
+          let actualWeight;
+          if (rawWeight < 100000) {
+            actualWeight = Math.round(rawWeight / 100);
+          } else {
+            actualWeight = Math.round(rawWeight / 1000);
+          }
+          
+          if (sign === '-') {
+            actualWeight = -actualWeight;
+          }
+          
+          console.log("8位格式计算后的实际重量:", actualWeight);
+          setSerialData(`${actualWeight}`);
           setIsStable(true);
+          
         } else {
-          console.log("数据格式不匹配，设置为不稳定");
-          setIsStable(false);
+          // 最后尝试简单的数字匹配
+          const simpleMatch = cleanedData.match(/[+-]?\d+/);
+          console.log("简单数字匹配结果:", simpleMatch);
+          
+          if (simpleMatch) {
+            const weight = parseInt(simpleMatch[0], 10);
+            console.log("简单匹配的重量:", weight);
+            setSerialData(`${weight}`);
+            setIsStable(true);
+          } else {
+            console.log("数据格式不匹配，设置为不稳定");
+            setIsStable(false);
+          }
         }
       }
     };
