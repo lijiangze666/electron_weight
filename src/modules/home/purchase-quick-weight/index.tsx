@@ -112,14 +112,60 @@ export default function PurchaseQuickWeight() {
     ipcRenderer.send("open-serialport");
 
     const handler = (_event: any, data: string) => {
-      const match = data.match(/[+-]?\d+/);
-      if (match) {
-        // 原始数据是克，除以1000并取整
-        const weight = Math.floor(parseInt(match[0], 10) / 1000);
-        setSerialData(`${weight}`);
+      console.log("前端收到串口数据:", JSON.stringify(data)); // 调试信息
+      
+      // 地磅数据格式: +00002401D
+      // 匹配地磅特定格式: 符号 + 数字 + 结束符
+      const scaleMatch = data.match(/([+-])(\d{8})([A-Z])/);
+      console.log("地磅格式匹配结果:", scaleMatch); // 调试信息
+      
+      if (scaleMatch) {
+        const sign = scaleMatch[1]; // + 或 -
+        const weightStr = scaleMatch[2]; // 8位数字
+        const endChar = scaleMatch[3]; // 结束符
+        
+        console.log("符号:", sign, "重量字符串:", weightStr, "结束符:", endChar);
+        
+        // 将8位数字转换为实际重量
+        const rawWeight = parseInt(weightStr, 10);
+        console.log("原始重量数值:", rawWeight);
+        
+        // 地磅可能的数据格式分析：
+        // 如果显示22kg，数据是00002401，那么可能需要特殊转换
+        // 常见格式：前4位可能是整数部分，后4位是小数部分
+        // 或者：需要除以100得到实际重量
+        
+        let actualWeight;
+        if (rawWeight < 100000) {
+          // 小于10万，可能需要除以100
+          actualWeight = Math.round(rawWeight / 100);
+        } else {
+          // 大于等于10万，可能需要除以1000或10000
+          actualWeight = Math.round(rawWeight / 1000);
+        }
+        
+        // 如果是负数，添加负号
+        if (sign === '-') {
+          actualWeight = -actualWeight;
+        }
+        
+        console.log("计算后的实际重量:", actualWeight);
+        setSerialData(`${actualWeight}`);
         setIsStable(true);
       } else {
-        setIsStable(false);
+        // 如果不匹配地磅格式，尝试简单的数字匹配
+        const simpleMatch = data.match(/[+-]?\d+/);
+        console.log("简单数字匹配结果:", simpleMatch);
+        
+        if (simpleMatch) {
+          const weight = parseInt(simpleMatch[0], 10);
+          console.log("简单匹配的重量:", weight);
+          setSerialData(`${weight}`);
+          setIsStable(true);
+        } else {
+          console.log("数据格式不匹配，设置为不稳定");
+          setIsStable(false);
+        }
       }
     };
     ipcRenderer.on("serialport-data", handler);
