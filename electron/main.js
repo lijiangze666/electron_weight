@@ -174,7 +174,7 @@ ipcMain.on("open-serialport", (event) => {
   // 监听串口数据
   serialPortInstance.on("data", (data) => {
     const dataStr = data.toString();
-    console.log("串口收到数据:", dataStr, "原始字节:", Array.from(data)); // 临时启用调试
+    // console.log("串口收到数据:", dataStr, "原始字节:", Array.from(data)); // 临时启用调试
     
     // 将数据添加到缓冲区
     serialBuffer += dataStr;
@@ -190,7 +190,7 @@ ipcMain.on("open-serialport", (event) => {
     if (completePacketMatch) {
       // 找到完整数据包，发送最新的一个
       const latestPacket = completePacketMatch[completePacketMatch.length - 1];
-      console.log("发送完整数据包:", latestPacket);
+      // console.log("发送完整数据包:", latestPacket);
       mainWindow.webContents.send("serialport-data", latestPacket);
       
       // 清空缓冲区
@@ -199,7 +199,7 @@ ipcMain.on("open-serialport", (event) => {
       // 没有完整数据包，设置超时等待更多数据
       bufferTimeout = setTimeout(() => {
         if (serialBuffer.length > 0) {
-          console.log("超时发送缓冲区数据:", serialBuffer);
+          // console.log("超时发送缓冲区数据:", serialBuffer);
           mainWindow.webContents.send("serialport-data", serialBuffer);
           serialBuffer = '';
         }

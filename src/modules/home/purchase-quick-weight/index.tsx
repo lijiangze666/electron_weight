@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { 
   Button, 
   Table, 
@@ -54,6 +54,106 @@ interface EditState {
   value: string;
 }
 
+// 独立的单价输入对话框组件，避免受串口数据影响
+const PriceInputDialog = React.memo(({ 
+  open, 
+  onClose, 
+  onConfirm, 
+  initialValue = "" 
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (price: string) => void;
+  initialValue?: string;
+}) => {
+  const [inputPrice, setInputPrice] = useState(initialValue);
+
+  // 当对话框打开时重置输入值
+  useEffect(() => {
+    if (open) {
+      setInputPrice(initialValue);
+    }
+  }, [open, initialValue]);
+
+  const handleConfirm = useCallback(() => {
+    if (inputPrice.trim() && parseFloat(inputPrice) > 0) {
+      onConfirm(inputPrice);
+      onClose();
+    }
+  }, [inputPrice, onConfirm, onClose]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleConfirm();
+    }
+  }, [handleConfirm]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // 限制只能输入数字和一个小数点，且小数点后最多两位
+    if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
+      setInputPrice(value);
+    }
+  }, []);
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      PaperProps={{
+        sx: {
+          borderRadius: 4,
+          boxShadow: 6,
+          minWidth: 380,
+          background: 'linear-gradient(90deg, #e3eafc 0%, #fff 100%)',
+          p: 2
+        }
+      }}
+    >
+      <DialogTitle sx={{ color: '#1976d2', fontWeight: 800, fontSize: 22, letterSpacing: 1, textAlign: 'center', pb: 1 }}>
+        请输入单价
+      </DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          margin="dense"
+          label="单价 (元/斤)"
+          type="text"
+          fullWidth
+          value={inputPrice}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          placeholder="请输入单价"
+          inputProps={{
+            inputMode: 'decimal',
+            style: { fontSize: 22, padding: '14px 12px', borderRadius: 8 }
+          }}
+          sx={{
+            mt: 2,
+            mb: 1,
+            '& .MuiInputBase-root': {
+              borderRadius: 2,
+              fontSize: 22,
+            },
+            '& label': {
+              fontSize: 18,
+            }
+          }}
+        />
+      </DialogContent>
+      <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
+        <Button onClick={onClose} sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5 }}>
+          取消
+        </Button>
+        <Button onClick={handleConfirm} variant="contained" sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5, fontWeight: 700 }}>
+          确定
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+});
+
 export default function PurchaseQuickWeight() {
   const [serialData, setSerialData] = useState("");
   const lastWeightRef = useRef<number | null>(null);
@@ -68,7 +168,6 @@ export default function PurchaseQuickWeight() {
   const [selectedArchivedId, setSelectedArchivedId] = useState<string | null>(null);
   // 单价输入弹窗相关状态
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
-  const [inputPrice, setInputPrice] = useState("");
   // 归档数据和筛选状态
   const [archivedRecords, setArchivedRecords] = useState<RecordItem[]>([]);
   const [filterStart, setFilterStart] = useState<string>("");
@@ -742,7 +841,7 @@ export default function PurchaseQuickWeight() {
   };
 
   // 点击毛重，弹窗输入单价
-  const handleMaozhong = () => {
+  const handleMaozhong = useCallback(() => {
     if (
       isStable &&
       serialData &&
@@ -750,9 +849,8 @@ export default function PurchaseQuickWeight() {
       selectedId
     ) {
       setPriceDialogOpen(true);
-      setInputPrice("");
     }
-  };
+  }, [isStable, serialData, records.length, selectedId]);
 
   // 修正金额计算逻辑：金额 = 单价 * 净重 * 2
   // handlePizhong
@@ -795,7 +893,7 @@ export default function PurchaseQuickWeight() {
   };
 
   // 确认输入单价
-  const handlePriceConfirm = async () => {
+  const handlePriceConfirm = useCallback(async (inputPrice: string) => {
     const priceValue = parseFloat(inputPrice);
     if (isNaN(priceValue) || priceValue <= 0) {
       setError("请输入有效的单价");
@@ -825,13 +923,12 @@ export default function PurchaseQuickWeight() {
     });
 
     setRecords(newRecords);
-    setPriceDialogOpen(false);
 
     // 用新数据去保存，此时卡号会被一起保存到数据库
     if (selectedId && newRecord) {
       await autoSaveRecord(selectedId, "毛重、单价和卡号已保存！", newRecord);
     }
-  };
+  }, [records, selectedId, serialData]);
 
   // 汇总计算
   const totalJingzhong = Math.round(records.reduce(
@@ -1694,7 +1791,6 @@ export default function PurchaseQuickWeight() {
       
       // 弹出单价输入框
       console.log('💰 弹出单价输入框');
-      setInputPrice(""); // 先清空输入
       setPriceDialogOpen(true);
       
     } catch (err) {
@@ -2296,66 +2392,12 @@ export default function PurchaseQuickWeight() {
         </div>
       </Box>
       {/* 单价输入弹窗 */}
-      <Dialog open={priceDialogOpen} onClose={() => setPriceDialogOpen(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: 4,
-            boxShadow: 6,
-            minWidth: 380,
-            background: 'linear-gradient(90deg, #e3eafc 0%, #fff 100%)',
-            p: 2
-          }
-        }}
-      >
-        <DialogTitle sx={{ color: '#1976d2', fontWeight: 800, fontSize: 22, letterSpacing: 1, textAlign: 'center', pb: 1 }}>请输入单价</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="单价 (元/斤)"
-            type="text"
-            fullWidth
-            value={inputPrice}
-            onChange={(e) => {
-              const value = e.target.value;
-              console.log('💰 单价输入变化:', value);
-              // 限制只能输入数字和一个小数点，且小数点后最多两位
-              if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
-                setInputPrice(value);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault(); // 防止表单默认提交
-                handlePriceConfirm(); // 调用确认函数
-              }
-            }}
-            onFocus={() => {
-              console.log('💰 单价输入框获得焦点');
-            }}
-            placeholder="请输入单价"
-            inputProps={{
-              inputMode: 'decimal',
-              style: { fontSize: 22, padding: '14px 12px', borderRadius: 8 }
-            }}
-            sx={{
-              mt: 2,
-              mb: 1,
-              '& .MuiInputBase-root': {
-                borderRadius: 2,
-                fontSize: 22,
-              },
-              '& label': {
-                fontSize: 18,
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
-          <Button onClick={() => setPriceDialogOpen(false)} sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5 }}>取消</Button>
-          <Button onClick={handlePriceConfirm} variant="contained" sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5, fontWeight: 700 }}>确定</Button>
-        </DialogActions>
-      </Dialog>
+      <PriceInputDialog
+        open={priceDialogOpen}
+        onClose={() => setPriceDialogOpen(false)}
+        onConfirm={handlePriceConfirm}
+        initialValue=""
+      />
       
       {/* 通用确认对话框 */}
       <Dialog
