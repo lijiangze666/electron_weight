@@ -188,7 +188,7 @@ class PrinterDemo:
             else:
                 value = data.get(key, "")  # 如果 key 不存在，默认空字符串
             dll.SetRelativeHorizontal(self.handle, 80)
-            dll.PrintTextS(self.handle, f'{label}{value}\n'.encode('gbk'))
+            dll.PrintText(self.handle, f'{label}{value}\n'.encode('gbk'),0,17)
             dll.PrintAndFeedLine(self.handle)
 
         print_line("单据号：", "bill_no")
@@ -196,9 +196,9 @@ class PrinterDemo:
         print_line("物品：", "item")
         print_line("毛重：", "gross_weight")
         print_line("皮重：", "tare_weight")
-        print_line("净重：", "net_weight")
-        print_line("单价：", "price")
-        print_line("金额：", "amount")
+        print_line("净重（斤）：", "net_weight")
+        print_line("单价（元/斤）：", "price")
+        print_line("金额（元）：", "amount")
 
         # for line in lines:
         #     dll.PrintTextS(self.handle, f'{line}\n'.encode('gbk'))
@@ -219,7 +219,9 @@ class PrinterDemo:
             dll.PrintAndFeedLine(self.handle)
         dll.PrintAndFeedLine(self.handle)
         dll.PrintText(self.handle, "------------------------".encode("gbk"), 1, 16)
+        dll.PrintText(self.handle, "此单据为结算唯一凭证，妥善保管，遗失不补".encode("gbk"))
         company_name = data.get("company_name", "")
+        dll.PrintAndFeedLine(self.handle)
         dll.PrintText(self.handle, f"公司名称：{company_name}\r\n".encode("gbk"), 1, 0)
         dll.CutPaperWithDistance(self.handle, 10)
 
