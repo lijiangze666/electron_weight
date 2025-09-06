@@ -2324,6 +2324,12 @@ export default function PurchaseQuickWeight() {
                 setInputPrice(value);
               }
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault(); // 防止表单默认提交
+                handlePriceConfirm(); // 调用确认函数
+              }
+            }}
             onFocus={() => {
               console.log('💰 单价输入框获得焦点');
             }}
