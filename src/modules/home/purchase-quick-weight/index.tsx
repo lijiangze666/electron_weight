@@ -1826,15 +1826,14 @@ export default function PurchaseQuickWeight() {
             <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow sx={{ background: "linear-gradient(90deg, #e3eafc 0%, #f5f7fa 100%)", boxShadow: 1 }}>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
-                  <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
-                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopLeftRadius: 12 }}>单据号</TableCell>
+                  <TableCell sx={{ width: '15%', whiteSpace: "nowrap", textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>时间</TableCell>
+                  <TableCell sx={{ width: '15%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>供应商名称</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>物品</TableCell>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>卡号</TableCell>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>毛重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
+                  <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
                   <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>金额</TableCell>
                 </TableRow>
               </TableHead>
@@ -1858,9 +1857,9 @@ export default function PurchaseQuickWeight() {
                       }
                     }}
                   >
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}> {r.id} </TableCell>
-                    <TableCell sx={{ width: '12%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}> {r.time} </TableCell>
-                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}> {r.id} </TableCell>
+                    <TableCell sx={{ width: '15%', whiteSpace: "nowrap", textAlign: "center", fontSize: "20px" }}> {r.time} </TableCell>
+                    <TableCell sx={{ width: '15%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
                         field="supplier"
@@ -1888,21 +1887,7 @@ export default function PurchaseQuickWeight() {
                         trigger="double"
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}>
-                      <EditableCell
-                        record={r}
-                        field="card_no"
-                        value={r.card_no || ""}
-                        isEditing={editingCell?.id === r.id && editingCell?.field === 'card_no'}
-                        onEdit={() => handleCellEdit(r.id, 'card_no', r.card_no || "")}
-                        onSave={handleCellSave}
-                        onCancel={handleCellCancel}
-                        onChange={(val) => handleCellChangeImmediate(r.id, 'card_no', val)}
-                        onKeyPress={handleEditKeyPress}
-                        trigger="double"
-                      />
-                    </TableCell>
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
                         field="maozhong"
@@ -1916,7 +1901,7 @@ export default function PurchaseQuickWeight() {
                         trigger="double"
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
                         field="pizhong"
@@ -1930,10 +1915,10 @@ export default function PurchaseQuickWeight() {
                         trigger="double"
                       />
                     </TableCell>
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>
                       {r.jingzhong !== null ? Math.round(r.jingzhong) : ""}
                     </TableCell>
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px" }}>
+                    <TableCell sx={{ width: '10%', textAlign: "center", fontSize: "20px" }}>
                       <EditableCell
                         record={r}
                         field="price"
