@@ -168,7 +168,7 @@ ipcMain.on("open-serialport", (event) => {
   );
   // 监听串口数据
   serialPortInstance.on("data", (data) => {
-    console.log("串口收到数据:", data.toString()); // 控制台打印
+    // console.log("串口收到数据:", data.toString()); // 控制台打印已隐藏
     mainWindow.webContents.send("serialport-data", data.toString());
   });
   // 监听串口错误
@@ -181,7 +181,7 @@ ipcMain.on("open-serialport", (event) => {
       event.sender.send("serialport-error", err.message);
       return;
     }
-    console.log("串口已打开");
+    // console.log("串口已打开"); // 控制台打印已隐藏
   });
 });
 
