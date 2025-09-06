@@ -2101,7 +2101,8 @@ export default function PurchaseQuickWeight() {
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>皮重</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>净重</TableCell>
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/斤</TableCell>
-                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/公斤</TableCell>
+                  <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>金额</TableCell>
+                  {/*<TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2' }}>单价/公斤</TableCell>*/}
                   <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "22px", fontWeight: "bold", color: '#1976d2', borderTopRightRadius: 12 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                       <span>付款状态</span>
@@ -2154,7 +2155,7 @@ export default function PurchaseQuickWeight() {
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.pizhong !== null ? r.pizhong : ""}</TableCell>
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#388e3c' }}>{r.jingzhong !== null ? r.jingzhong : ""}</TableCell>
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price}</TableCell>
-                    <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>
+                    {/*<TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", color: '#1976d2' }}>{r.price !== null ? r.price * 2 : ""}</TableCell>*/}
                     <TableCell sx={{ width: '8%', textAlign: "center", fontSize: "20px", fontWeight: 700, color: '#d32f2f' }}>{r.amount ? Math.round(r.amount) : ""}</TableCell>
                     <TableCell 
                       sx={{ 
