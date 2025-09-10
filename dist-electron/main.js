@@ -91,6 +91,8 @@ function startRFIDListener() {
   });
 }
 const { ipcMain } = require("electron");
+let serialBuffer = "";
+let bufferTimeout = null;
 ipcMain.on("open-serialport", (event) => {
   if (process.env.MOCK_SERIAL === "1") {
     startMockSerial();
@@ -107,8 +109,35 @@ ipcMain.on("open-serialport", (event) => {
     }
   );
   serialPortInstance.on("data", (data) => {
-    console.log("串口收到数据:", data.toString());
-    mainWindow.webContents.send("serialport-data", data.toString());
+    const dataStr = data.toString();
+    console.log("串口收到数据:", dataStr, "原始字节:", Array.from(data));
+    serialBuffer += dataStr;
+    if (bufferTimeout) {
+      clearTimeout(bufferTimeout);
+    }
+    const cleanedBuffer = serialBuffer.replace(/[\x02\x03]/g, "");
+    console.log("清理后的缓冲区:", JSON.stringify(cleanedBuffer));
+    let completePacketMatch = cleanedBuffer.match(/([+-]\d{9})(?![0-9])/g);
+    if (!completePacketMatch) {
+      completePacketMatch = cleanedBuffer.match(/([+-]\d{8}[A-Z])/g);
+    }
+    if (completePacketMatch) {
+      const latestPacket = completePacketMatch[completePacketMatch.length - 1];
+      console.log("发送完整数据包:", latestPacket);
+      mainWindow.webContents.send("serialport-data", latestPacket);
+      serialBuffer = "";
+    } else {
+      bufferTimeout = setTimeout(() => {
+        if (serialBuffer.length > 0) {
+          console.log("超时发送缓冲区数据:", serialBuffer);
+          const cleanedData = serialBuffer.replace(/[\x02\x03]/g, "");
+          if (cleanedData.length > 0) {
+            mainWindow.webContents.send("serialport-data", cleanedData);
+          }
+          serialBuffer = "";
+        }
+      }, 100);
+    }
   });
   serialPortInstance.on("error", (err) => {
     event.sender.send("serialport-error", err.message);
@@ -118,7 +147,6 @@ ipcMain.on("open-serialport", (event) => {
       event.sender.send("serialport-error", err.message);
       return;
     }
-    console.log("串口已打开");
   });
 });
 app.whenReady().then(() => {

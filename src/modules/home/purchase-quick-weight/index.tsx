@@ -20,10 +20,12 @@ import {
   Checkbox, 
   Select, 
   MenuItem, 
-  Box 
+  Box
 } from "@mui/material";
 import dayjs from "dayjs";
 import axios from "axios";
+import PriceInputDialog from './components/PriceInputDialog';
+import dialogManager from './utils/dialogManager';
 const { runPythonScript } = window.require ? window.require('./src/modules/home/purchase-quick-weight/utils/printer') : {};
 
 const { ipcRenderer } = window.require
@@ -54,105 +56,6 @@ interface EditState {
   value: string;
 }
 
-// 独立的单价输入对话框组件，避免受串口数据影响
-const PriceInputDialog = React.memo(({ 
-  open, 
-  onClose, 
-  onConfirm, 
-  initialValue = "" 
-}: {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: (price: string) => void;
-  initialValue?: string;
-}) => {
-  const [inputPrice, setInputPrice] = useState(initialValue);
-
-  // 当对话框打开时重置输入值
-  useEffect(() => {
-    if (open) {
-      setInputPrice(initialValue);
-    }
-  }, [open, initialValue]);
-
-  const handleConfirm = useCallback(() => {
-    if (inputPrice.trim() && parseFloat(inputPrice) > 0) {
-      onConfirm(inputPrice);
-      onClose();
-    }
-  }, [inputPrice, onConfirm, onClose]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleConfirm();
-    }
-  }, [handleConfirm]);
-
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // 限制只能输入数字和一个小数点，且小数点后最多两位
-    if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
-      setInputPrice(value);
-    }
-  }, []);
-
-  return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      PaperProps={{
-        sx: {
-          borderRadius: 4,
-          boxShadow: 6,
-          minWidth: 380,
-          background: 'linear-gradient(90deg, #e3eafc 0%, #fff 100%)',
-          p: 2
-        }
-      }}
-    >
-      <DialogTitle sx={{ color: '#1976d2', fontWeight: 800, fontSize: 22, letterSpacing: 1, textAlign: 'center', pb: 1 }}>
-        请输入单价
-      </DialogTitle>
-      <DialogContent>
-        <TextField
-          autoFocus
-          margin="dense"
-          label="单价 (元/斤)"
-          type="text"
-          fullWidth
-          value={inputPrice}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder="请输入单价"
-          inputProps={{
-            inputMode: 'decimal',
-            style: { fontSize: 22, padding: '14px 12px', borderRadius: 8 }
-          }}
-          sx={{
-            mt: 2,
-            mb: 1,
-            '& .MuiInputBase-root': {
-              borderRadius: 2,
-              fontSize: 22,
-            },
-            '& label': {
-              fontSize: 18,
-            }
-          }}
-        />
-      </DialogContent>
-      <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
-        <Button onClick={onClose} sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5 }}>
-          取消
-        </Button>
-        <Button onClick={handleConfirm} variant="contained" sx={{ fontSize: 20, borderRadius: 3, px: 4, py: 1.5, fontWeight: 700 }}>
-          确定
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-});
 
 export default function PurchaseQuickWeight() {
   const [serialData, setSerialData] = useState("");
@@ -168,6 +71,7 @@ export default function PurchaseQuickWeight() {
   const [selectedArchivedId, setSelectedArchivedId] = useState<string | null>(null);
   // 单价输入弹窗相关状态
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  
   // 归档数据和筛选状态
   const [archivedRecords, setArchivedRecords] = useState<RecordItem[]>([]);
   const [filterStart, setFilterStart] = useState<string>("");
@@ -211,6 +115,12 @@ export default function PurchaseQuickWeight() {
     ipcRenderer.send("open-serialport");
 
     const handler = (_event: any, data: string) => {
+      // 使用全局状态管理器检查对话框状态，完全避免闭包问题
+      if (dialogManager.isPriceDialogCurrentlyOpen()) {
+        console.log("单价对话框打开中，忽略串口数据:", JSON.stringify(data));
+        return;
+      }
+      
       console.log("前端收到串口数据:", JSON.stringify(data)); // 调试信息
       
       // 清理数据：移除STX(ASCII 2)和ETX(ASCII 3)控制字符
@@ -308,8 +218,11 @@ export default function PurchaseQuickWeight() {
 
     // 添加键盘监听，用于扫码器输入
     const handleKeyDown = (event: KeyboardEvent) => { 
-      // 如果正在编辑单元格或打开了对话框，不处理扫码器输入
-      if (editingCell || editingArchivedCell || priceDialogOpen || confirmDialogOpen || deleteConfirmOpen) {
+      // 使用全局状态管理器检查对话框状态，完全避免闭包问题
+      if (editingCell || editingArchivedCell || dialogManager.isPriceDialogCurrentlyOpen() || confirmDialogOpen || deleteConfirmOpen) {
+        // 完全阻止事件处理，避免干扰对话框输入
+        event.preventDefault();
+        event.stopPropagation();
         return;
       }
 
@@ -927,6 +840,18 @@ export default function PurchaseQuickWeight() {
     }
   };
 
+  // 确认输入单价 - 使用useRef保存当前状态避免闭包问题
+  const recordsRef = useRef(records);
+  const selectedIdRef = useRef(selectedId);
+  const serialDataRef = useRef(serialData);
+  
+  // 更新refs
+  useEffect(() => {
+    recordsRef.current = records;
+    selectedIdRef.current = selectedId;
+    serialDataRef.current = serialData;
+  }, [records, selectedId, serialData]);
+
   // 确认输入单价
   const handlePriceConfirm = useCallback(async (inputPrice: string) => {
     const priceValue = parseFloat(inputPrice);
@@ -938,12 +863,17 @@ export default function PurchaseQuickWeight() {
 
     // 限制小数点后两位
     const roundedPrice = Math.round(priceValue * 100) / 100;
+    
+    // 使用ref获取最新状态
+    const currentRecords = recordsRef.current;
+    const currentSelectedId = selectedIdRef.current;
+    const currentSerialData = serialDataRef.current;
 
     // 先算出新数据
     let newRecord: RecordItem | undefined;
-    const newRecords = records.map((row) => {
-      if (row.id === selectedId) {
-        const maozhong = Math.round(Number(serialData));
+    const newRecords = currentRecords.map((row) => {
+      if (row.id === currentSelectedId) {
+        const maozhong = Math.round(Number(currentSerialData));
         let jingzhong = null;
         let amount = 0;
         if (row.pizhong !== null) {
@@ -960,10 +890,13 @@ export default function PurchaseQuickWeight() {
     setRecords(newRecords);
 
     // 用新数据去保存，此时卡号会被一起保存到数据库
-    if (selectedId && newRecord) {
-      await autoSaveRecord(selectedId, "毛重、单价和卡号已保存！", newRecord);
+    if (currentSelectedId && newRecord) {
+      await autoSaveRecord(currentSelectedId, "毛重、单价和卡号已保存！", newRecord);
     }
-  }, [records, selectedId, serialData]);
+    
+    // 关闭对话框
+    setPriceDialogOpen(false);
+  }, []);
 
   // 汇总计算
   const totalJingzhong = Math.round(records.reduce(
