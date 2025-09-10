@@ -115,9 +115,9 @@ export default function PurchaseQuickWeight() {
     ipcRenderer.send("open-serialport");
 
     const handler = (_event: any, data: string) => {
-      // 使用全局状态管理器检查对话框状态，完全避免闭包问题
-      if (dialogManager.isPriceDialogCurrentlyOpen()) {
-        console.log("单价对话框打开中，忽略串口数据:", JSON.stringify(data));
+      // 使用全局状态管理器检查所有编辑状态，完全避免闭包问题
+      if (dialogManager.isAnyEditingActive()) {
+        console.log("检测到编辑状态，忽略串口数据:", JSON.stringify(data));
         return;
       }
       
@@ -218,11 +218,35 @@ export default function PurchaseQuickWeight() {
 
     // 添加键盘监听，用于扫码器输入
     const handleKeyDown = (event: KeyboardEvent) => { 
-      // 使用全局状态管理器检查对话框状态，完全避免闭包问题
-      if (editingCell || editingArchivedCell || dialogManager.isPriceDialogCurrentlyOpen() || confirmDialogOpen || deleteConfirmOpen) {
-        // 完全阻止事件处理，避免干扰对话框输入
-        event.preventDefault();
-        event.stopPropagation();
+      // 检查是否在编辑状态中
+      const isEditing = dialogManager.isAnyEditingActive();
+      
+      if (isEditing || confirmDialogOpen || deleteConfirmOpen) {
+        // 如果正在编辑，检查目标元素是否为输入框
+        const target = event.target as HTMLElement;
+        const isInputElement = target.tagName === 'INPUT' || 
+                              target.tagName === 'TEXTAREA' || 
+                              target.contentEditable === 'true' ||
+                              target.closest('.MuiInputBase-input') ||
+                              target.closest('.MuiSelect-root');
+        
+        if (isInputElement) {
+          // 如果是输入框，不阻止事件，让输入框正常处理
+          return;
+        }
+        
+        // 如果不是输入框，检查是否为扫码器输入（快速连续输入）
+        const currentTime = Date.now();
+        const timeSinceLastKey = currentTime - lastKeyTimeRef.current;
+        
+        // 如果是快速连续输入（扫码器特征），则阻止
+        if (timeSinceLastKey < keyIntervalThreshold) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+        
+        // 对于其他键盘输入，不阻止
         return;
       }
 
@@ -929,16 +953,22 @@ export default function PurchaseQuickWeight() {
       field,
       value: currentValue !== null ? currentValue.toString() : ""
     });
+    // 更新全局状态管理器
+    dialogManager.setCellEditing(true);
   };
 
   // 保存编辑（现在只做退出编辑）
   const handleCellSave = () => {
     setEditingCell(null);
+    // 更新全局状态管理器
+    dialogManager.setCellEditing(false);
   };
 
   // 取消编辑
   const handleCellCancel = () => {
     setEditingCell(null);
+    // 更新全局状态管理器
+    dialogManager.setCellEditing(false);
   };
 
   // 处理编辑输入变化
@@ -964,16 +994,22 @@ export default function PurchaseQuickWeight() {
       field,
       value: currentValue !== null ? currentValue.toString() : ""
     });
+    // 更新全局状态管理器
+    dialogManager.setArchivedCellEditing(true);
   };
 
   // 保存归档数据编辑（现在只做退出编辑）
   const handleArchivedCellSave = () => {
     setEditingArchivedCell(null);
+    // 更新全局状态管理器
+    dialogManager.setArchivedCellEditing(false);
   };
 
   // 取消编辑归档数据
   const handleArchivedCellCancel = () => {
     setEditingArchivedCell(null);
+    // 更新全局状态管理器
+    dialogManager.setArchivedCellEditing(false);
   };
 
   // 处理归档数据编辑输入变化
@@ -1143,6 +1179,15 @@ export default function PurchaseQuickWeight() {
             value={localValue ?? ""}
             onChange={e => setLocalValue(e.target.value)}
             onBlur={handleSave}
+            onKeyDown={(e) => {
+              // 阻止事件冒泡，避免被全局键盘监听器干扰
+              e.stopPropagation();
+              if (e.key === 'Enter') {
+                handleSave();
+              } else if (e.key === 'Escape') {
+                handleCancel();
+              }
+            }}
             autoFocus
             size="small"
             sx={{ fontSize: '20px', minWidth: 80 }}
@@ -1167,6 +1212,8 @@ export default function PurchaseQuickWeight() {
               }
             }}
             onKeyDown={(e) => {
+              // 阻止事件冒泡，避免被全局键盘监听器干扰
+              e.stopPropagation();
               if (e.key === 'Enter') {
                 handleSave();
               } else if (e.key === 'Escape') {
@@ -1197,6 +1244,8 @@ export default function PurchaseQuickWeight() {
           value={localValue ?? ""}
           onChange={(e) => setLocalValue(e.target.value)}
           onKeyDown={(e) => {
+            // 阻止事件冒泡，避免被全局键盘监听器干扰
+            e.stopPropagation();
             if (e.key === 'Enter') {
               handleSave();
             } else if (e.key === 'Escape') {

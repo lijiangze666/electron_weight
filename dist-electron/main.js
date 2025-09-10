@@ -41,7 +41,7 @@ function startMockSerial() {
       win.webContents.send("serialport-data", `${mockValue}\r
 `);
     });
-  }, 3e3);
+  }, 300);
 }
 let rfidBuffer = "";
 let rfidTimeout = null;

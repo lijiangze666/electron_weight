@@ -2,6 +2,8 @@
 class DialogManager {
   private static instance: DialogManager;
   private isPriceDialogOpen = false;
+  private isCellEditing = false;
+  private isArchivedCellEditing = false;
   private listeners: Set<() => void> = new Set();
 
   private constructor() {}
@@ -22,6 +24,33 @@ class DialogManager {
   // 获取单价对话框状态
   isPriceDialogCurrentlyOpen(): boolean {
     return this.isPriceDialogOpen;
+  }
+
+  // 设置单元格编辑状态
+  setCellEditing(isEditing: boolean) {
+    this.isCellEditing = isEditing;
+    this.notifyListeners();
+  }
+
+  // 获取单元格编辑状态
+  isCellCurrentlyEditing(): boolean {
+    return this.isCellEditing;
+  }
+
+  // 设置归档单元格编辑状态
+  setArchivedCellEditing(isEditing: boolean) {
+    this.isArchivedCellEditing = isEditing;
+    this.notifyListeners();
+  }
+
+  // 获取归档单元格编辑状态
+  isArchivedCellCurrentlyEditing(): boolean {
+    return this.isArchivedCellEditing;
+  }
+
+  // 检查是否有任何编辑状态
+  isAnyEditingActive(): boolean {
+    return this.isPriceDialogOpen || this.isCellEditing || this.isArchivedCellEditing;
   }
 
   // 添加状态变化监听器

@@ -57,7 +57,7 @@ function startMockSerial() {
     BrowserWindow.getAllWindows().forEach((win) => {
       win.webContents.send("serialport-data", `${mockValue}\r\n`);
     });
-  }, 3000);
+  }, 300);
 }
 
 // RFID卡号监听（USB HID键盘输入）
