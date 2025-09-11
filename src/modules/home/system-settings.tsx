@@ -11,6 +11,7 @@ const menuItems = [
   // { key: "role", label: "权限设置" },
   // { key: "base", label: "基础配置" },
   { key: "company", label: "公司配置" },
+  { key: "items", label: "物品类型管理" },
   { key: "db", label: "数据库连接配置" },
   { key: "card", label: "一卡通设置" },
 ];
@@ -215,6 +216,234 @@ function CompanySetting() {
               </Typography>
             </Box>
           </Box>
+        </Box>
+      </Paper>
+
+      {/* 消息提示 */}
+      <Snackbar
+        open={!!message}
+        autoHideDuration={3000}
+        onClose={() => setMessage(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setMessage(null)}
+          severity={message?.type}
+          sx={{ width: '100%' }}
+        >
+          {message?.text}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+}
+
+function ItemTypeSetting() {
+  const [items, setItems] = React.useState<string[]>(['小麦', '玉米']);
+  const [newItem, setNewItem] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [message, setMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // 加载物品类型列表
+  const loadItems = async () => {
+    try {
+      setLoading(true);
+      // 从localStorage加载物品类型，如果没有则使用默认值
+      const savedItems = localStorage.getItem('itemTypes');
+      if (savedItems) {
+        const parsedItems = JSON.parse(savedItems);
+        if (Array.isArray(parsedItems)) {
+          setItems(parsedItems);
+        }
+      }
+    } catch (error) {
+      console.error('加载物品类型失败:', error);
+      setMessage({ type: 'error', text: '加载物品类型失败' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 添加物品类型
+  const handleAddItem = async () => {
+    if (!newItem.trim()) {
+      setMessage({ type: 'error', text: '请输入物品类型' });
+      return;
+    }
+
+    if (items.includes(newItem.trim())) {
+      setMessage({ type: 'error', text: '该物品类型已存在' });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const updatedItems = [...items, newItem.trim()];
+      setItems(updatedItems);
+      
+      // 保存到localStorage
+      localStorage.setItem('itemTypes', JSON.stringify(updatedItems));
+      
+      setNewItem('');
+      setMessage({ type: 'success', text: '添加成功' });
+
+      // 触发全局事件，通知其他组件更新
+      window.dispatchEvent(new CustomEvent('itemTypesChanged', { 
+        detail: { itemTypes: updatedItems } 
+      }));
+    } catch (error) {
+      console.error('添加物品类型失败:', error);
+      setMessage({ type: 'error', text: '添加物品类型失败' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 删除物品类型
+  const handleDeleteItem = async (itemToDelete: string) => {
+    try {
+      setLoading(true);
+      const updatedItems = items.filter(item => item !== itemToDelete);
+      setItems(updatedItems);
+      
+      // 保存到localStorage
+      localStorage.setItem('itemTypes', JSON.stringify(updatedItems));
+      
+      setMessage({ type: 'success', text: '删除成功' });
+
+      // 触发全局事件，通知其他组件更新
+      window.dispatchEvent(new CustomEvent('itemTypesChanged', { 
+        detail: { itemTypes: updatedItems } 
+      }));
+    } catch (error) {
+      console.error('删除物品类型失败:', error);
+      setMessage({ type: 'error', text: '删除物品类型失败' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 组件加载时获取物品类型列表
+  React.useEffect(() => {
+    loadItems();
+  }, []);
+
+  return (
+    <Box sx={{ maxWidth: 800 }}>
+      {/* 添加物品类型表单 */}
+      <Paper sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%)' }}>
+        <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+          📦 添加物品类型
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <TextField
+            label="物品类型"
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            placeholder="请输入物品类型，如：小麦、玉米等"
+            sx={{ minWidth: 300 }}
+            size="small"
+            disabled={loading}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleAddItem();
+              }
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddItem}
+            disabled={!newItem.trim() || loading}
+            sx={{ 
+              background: '#1976d2',
+              '&:hover': { background: '#1565c0' }
+            }}
+          >
+            添加
+          </Button>
+        </Box>
+      </Paper>
+
+      {/* 物品类型列表 */}
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 600 }}>
+            物品类型列表 ({items.length} 种)
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={loadItems}
+            disabled={loading}
+            sx={{ 
+              borderColor: '#1976d2',
+              color: '#1976d2',
+              '&:hover': { borderColor: '#1565c0', background: 'rgba(25, 118, 210, 0.04)' }
+            }}
+          >
+            刷新
+          </Button>
+        </Box>
+        
+        {items.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4, color: '#666' }}>
+            <Typography variant="body1">
+              {loading ? '加载中...' : '暂无物品类型，请在上方添加物品类型'}
+            </Typography>
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ background: '#f5f5f5' }}>
+                  <TableCell sx={{ fontWeight: 600 }}>序号</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>物品类型</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>操作</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {items.map((item, index) => (
+                  <TableRow key={item} sx={{ '&:hover': { background: '#f8f9fa' } }}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>
+                      {item}
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        onClick={() => handleDeleteItem(item)}
+                        size="small"
+                        disabled={loading}
+                        sx={{ color: '#d32f2f' }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
+
+      {/* 使用说明 */}
+      <Paper sx={{ p: 3, mt: 3, background: '#f0f7ff', border: '1px solid #bbdefb' }}>
+        <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+          💡 使用说明
+        </Typography>
+        <Box component="ul" sx={{ m: 0, pl: 2, color: '#333' }}>
+          <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+            物品类型将在采购和销售页面的下拉框中选择使用
+          </Typography>
+          <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+            添加的物品类型会立即生效，无需重启应用
+          </Typography>
+          <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+            删除物品类型前请确保没有相关记录正在使用
+          </Typography>
+          <Typography component="li" variant="body2">
+            建议使用简洁、易识别的物品类型名称
+          </Typography>
         </Box>
       </Paper>
 
@@ -545,6 +774,8 @@ export default function SystemSettings() {
       //   return <Typography>这里是基础配置内容</Typography>;
       case "company":
         return <CompanySetting />;
+      case "items":
+        return <ItemTypeSetting />;
       case "db":
         return <DatabaseConfig />;
       case "card":

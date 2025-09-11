@@ -89,6 +89,8 @@ export default function PurchaseQuickWeight() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   // 公司名称状态
   const [companyName, setCompanyName] = useState("一磅通");
+  // 物品类型状态
+  const [itemTypes, setItemTypes] = useState<string[]>(['小麦', '玉米']);
   
   // 扫码器相关状态
   const [isScanning, setIsScanning] = useState(false);
@@ -347,10 +349,31 @@ export default function PurchaseQuickWeight() {
     };
     window.addEventListener('companyNameChanged', companyNameChangeHandler);
 
+    // 监听物品类型变更事件
+    const itemTypesChangeHandler = (event: any) => {
+      const { itemTypes: newItemTypes } = event.detail;
+      setItemTypes(newItemTypes);
+      console.log('物品类型已更新:', newItemTypes);
+    };
+    window.addEventListener('itemTypesChanged', itemTypesChangeHandler);
+
     // 初始化时从localStorage加载公司名称
     const savedCompanyName = localStorage.getItem('companyName');
     if (savedCompanyName) {
       setCompanyName(savedCompanyName);
+    }
+
+    // 初始化时从localStorage加载物品类型
+    const savedItemTypes = localStorage.getItem('itemTypes');
+    if (savedItemTypes) {
+      try {
+        const parsedItemTypes = JSON.parse(savedItemTypes);
+        if (Array.isArray(parsedItemTypes)) {
+          setItemTypes(parsedItemTypes);
+        }
+      } catch (error) {
+        console.error('解析物品类型失败:', error);
+      }
     }
     
     return () => {
@@ -361,6 +384,8 @@ export default function PurchaseQuickWeight() {
       }
       // 移除公司名称变更监听
       window.removeEventListener('companyNameChanged', companyNameChangeHandler);
+      // 移除物品类型变更监听
+      window.removeEventListener('itemTypesChanged', itemTypesChangeHandler);
       // 移除键盘事件监听
       document.removeEventListener('keydown', handleKeyDown);
       // 清理扫码超时
@@ -1193,8 +1218,11 @@ export default function PurchaseQuickWeight() {
             sx={{ fontSize: '20px', minWidth: 80 }}
             MenuProps={{ PaperProps: { sx: { fontSize: '20px' } } }}
           >
-            <MenuItem value="小麦" sx={{ fontSize: '20px' }}>小麦</MenuItem>
-            <MenuItem value="玉米" sx={{ fontSize: '20px' }}>玉米</MenuItem>
+            {itemTypes.map((item) => (
+              <MenuItem key={item} value={item} sx={{ fontSize: '20px' }}>
+                {item}
+              </MenuItem>
+            ))}
           </Select>
         );
       }

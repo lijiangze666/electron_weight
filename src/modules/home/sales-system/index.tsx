@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   Button, 
   Table, 
@@ -64,9 +64,27 @@ export default function SalesSystem() {
     unit: "公斤"
   });
 
+  // 物品类型状态
+  const [itemTypes, setItemTypes] = useState<string[]>([]);
+
   useEffect(() => {
     // 页面加载时查询所有数据
     handleQueryAllRecords();
+    
+    // 加载物品类型
+    loadItemTypes();
+    
+    // 监听物品类型变更事件
+    const itemTypesChangeHandler = (event: any) => {
+      const { itemTypes: newItemTypes } = event.detail;
+      setItemTypes(newItemTypes);
+      console.log('物品类型已更新:', newItemTypes);
+    };
+    window.addEventListener('itemTypesChanged', itemTypesChangeHandler);
+    
+    return () => {
+      window.removeEventListener('itemTypesChanged', itemTypesChangeHandler);
+    };
   }, []);
 
   // 生成随机单据号
@@ -155,7 +173,7 @@ export default function SalesSystem() {
       
       if (response.data.code === 0) {
         // 添加到本地列表
-        const newRecordItem = {
+        const newRecordItem: SalesRecord = {
           id: newId,
           dbId: response.data.data.id,
           time: recordToSave.time,
@@ -167,7 +185,7 @@ export default function SalesSystem() {
           unit: recordToSave.unit,
           price: recordToSave.price,
           amount: recordToSave.amount,
-          card_no: recordToSave.card_no,
+          card_no: recordToSave.card_no || undefined,
           is_archived: recordToSave.is_archived,
           is_check: recordToSave.is_check
         };
@@ -292,6 +310,30 @@ export default function SalesSystem() {
   ));
   const totalAmount = Math.round(records.reduce((sum, r) => sum + (r.amount || 0), 0));
 
+  // 加载物品类型
+  const loadItemTypes = () => {
+    const savedItemTypes = localStorage.getItem('itemTypes');
+    if (savedItemTypes) {
+      try {
+        const parsedItemTypes = JSON.parse(savedItemTypes);
+        if (Array.isArray(parsedItemTypes) && parsedItemTypes.length > 0) {
+          setItemTypes(parsedItemTypes);
+          // 如果当前选择的物品不在列表中，更新为第一个
+          if (!parsedItemTypes.includes(newRecord.item)) {
+            setNewRecord(prev => ({ ...prev, item: parsedItemTypes[0] }));
+          }
+        } else {
+          setItemTypes(['小麦', '玉米']);
+        }
+      } catch (error) {
+        console.error('解析物品类型失败:', error);
+        setItemTypes(['小麦', '玉米']);
+      }
+    } else {
+      setItemTypes(['小麦', '玉米']);
+    }
+  };
+
   // 按钮大小
   const bigBtnStyle = { fontSize: 20, px: 1, py: 1, minWidth: 90 };
 
@@ -374,8 +416,11 @@ export default function SalesSystem() {
                 '& .MuiInputLabel-root': { fontSize: '16px' }
               }}
             >
-              <MenuItem value="小麦">小麦</MenuItem>
-              <MenuItem value="玉米">玉米</MenuItem>
+              {itemTypes.map((item) => (
+                <MenuItem key={item} value={item}>
+                  {item}
+                </MenuItem>
+              ))}
             </Select>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
