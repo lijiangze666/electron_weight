@@ -401,12 +401,12 @@ function createMainWindow() {
   });
 }
 
-// 当 Electron 完成初始化时，启动后端服务并创建登录窗口
+// 当 Electron 完成初始化时，启动后端服务并直接创建主窗口
 app.whenReady().then(() => {
   // 启动后端服务
   startBackendServer();
-  // 创建登录窗口
-  createLoginWindow();
+  // 直接创建主窗口，跳过登录页面
+  createMainWindow();
 });
 
 // 监听所有窗口关闭的事件
