@@ -6,11 +6,14 @@
     "dev:server": "node server/api.js",
     "dev:client": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:electron\""
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:electron\"",
+    "build": "vite build",
+    "build:electron": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --publish=never"
   },
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "一磅通称重管理系统 - 专业的车辆称重和进销存管理软件",
   "dependencies": {
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.0",
@@ -39,5 +42,35 @@
     "typescript": "^5.4.2",
     "vite": "^5.1.6",
     "vite-plugin-electron": "^0.28.0"
+  },
+  "build": {
+    "appId": "com.weight-system.app",
+    "productName": "一磅通称重管理系统",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "electron/**/*",
+      "server/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "server",
+        "to": "server"
+      },
+      {
+        "from": "public/printer_sdk",
+        "to": "printer_sdk"
+      }
+    ],
+    "win": {
+      "target": "dir",
+      "icon": "electron/logo.ico"
+    }
   }
 }
