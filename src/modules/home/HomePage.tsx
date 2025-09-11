@@ -1,6 +1,7 @@
 import React from "react";
 import { Tabs, Tab, Box, Paper } from "@mui/material";
 import PurchaseQuickWeight from "./purchase-quick-weight";
+import SalesSystem from "./sales-system";
 import SystemSettings from "./system-settings";
 import HomeMain from "./home-main";
 
@@ -61,6 +62,7 @@ export default function HomePage() {
         >
           <Tab label="首页" />
           <Tab label="采购快捷过磅" />
+          <Tab label="销售系统" />
           <Tab label="系统设置" />
         </Tabs>
       </Paper>
@@ -74,7 +76,8 @@ export default function HomePage() {
       >
         {tab === 0 && <HomeMain onNavigate={setTab} />}
         {tab === 1 && <PurchaseQuickWeight />}
-        {tab === 2 && <SystemSettings />}
+        {tab === 2 && <SalesSystem />}
+        {tab === 3 && <SystemSettings />}
       </Box>
     </Box>
   );

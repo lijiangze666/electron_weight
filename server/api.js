@@ -4,6 +4,7 @@ const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
 const { insertPurchaseWeightRecord, getAllActiveRecords, getRecordsByTimeRange, deleteRecord, updateRecord, getAllArchivedRecords, updatePaymentStatus, getRecordsByCardNo, getHomeStatistics, getChartData } = require('./purchaseWeightService');
+const { insertSalesWeightRecord, getAllActiveSalesRecords, getSalesRecordsByTimeRange, deleteSalesRecord, updateSalesRecord, getAllArchivedSalesRecords, updateSalesPaymentStatus, getSalesRecordsByCardNo, getSalesStatistics, getSalesChartData } = require('./salesWeightService');
 const { insertCard, updateCard, deleteCard, getAllCards, getCardById, batchInsertCards } = require('./cardService');
 const { loadConfig, reconnect } = require('./db');
 
@@ -431,6 +432,143 @@ app.delete('/api/cards/:id', async (req, res) => {
   } catch (err) {
     console.error('删除卡号失败:', err);
     res.status(500).json({ code: 1, msg: '删除卡号失败', error: err.message });
+  }
+});
+
+// ==================== 销售系统接口 ====================
+
+// 添加销售记录
+app.post('/api/sales-weight', async (req, res) => {
+  try {
+    const record = req.body;
+    console.log('收到销售记录添加请求:', record);
+    
+    // 验证必填字段
+    if (!record.bill_no || !record.time || !record.customer) {
+      return res.status(400).json({ code: 1, msg: '单据号、时间、销售方必填' });
+    }
+    
+    const insertId = await insertSalesWeightRecord(record);
+    res.json({ code: 0, msg: '添加成功', data: { id: insertId } });
+  } catch (err) {
+    console.error('添加销售记录失败:', err);
+    res.status(500).json({ code: 1, msg: '添加销售记录失败', error: err.message });
+  }
+});
+
+// 更新销售记录
+app.put('/api/sales-weight/:billNo', async (req, res) => {
+  try {
+    const { billNo } = req.params;
+    const record = req.body;
+    console.log('收到销售记录更新请求:', billNo, record);
+    
+    const success = await updateSalesRecord(billNo, record);
+    if (success) {
+      res.json({ code: 0, msg: '更新成功' });
+    } else {
+      res.status(404).json({ code: 1, msg: '销售记录不存在' });
+    }
+  } catch (err) {
+    console.error('更新销售记录失败:', err);
+    res.status(500).json({ code: 1, msg: '更新销售记录失败', error: err.message });
+  }
+});
+
+// 删除销售记录
+app.delete('/api/sales-weight/:billNo', async (req, res) => {
+  try {
+    const { billNo } = req.params;
+    console.log('收到销售记录删除请求:', billNo);
+    
+    const success = await deleteSalesRecord(billNo);
+    if (success) {
+      res.json({ code: 0, msg: '删除成功' });
+    } else {
+      res.status(404).json({ code: 1, msg: '销售记录不存在' });
+    }
+  } catch (err) {
+    console.error('删除销售记录失败:', err);
+    res.status(500).json({ code: 1, msg: '删除销售记录失败', error: err.message });
+  }
+});
+
+// 查询所有销售记录
+app.get('/api/sales-weight', async (req, res) => {
+  try {
+    const records = await getAllActiveSalesRecords();
+    res.json({ code: 0, msg: '查询成功', data: records });
+  } catch (err) {
+    console.error('查询销售记录失败:', err);
+    res.status(500).json({ code: 1, msg: '查询销售记录失败', error: err.message });
+  }
+});
+
+// 查询已归档的销售记录
+app.get('/api/sales-weight-archived', async (req, res) => {
+  try {
+    const records = await getAllArchivedSalesRecords();
+    res.json({ code: 0, msg: '查询成功', data: records });
+  } catch (err) {
+    console.error('查询归档销售记录失败:', err);
+    res.status(500).json({ code: 1, msg: '查询归档销售记录失败', error: err.message });
+  }
+});
+
+// 更新销售记录收款状态
+app.put('/api/sales-weight-payment/:billNo', async (req, res) => {
+  try {
+    const { billNo } = req.params;
+    const { is_check } = req.body;
+    console.log('收到销售收款状态更新请求:', billNo, is_check);
+    
+    const success = await updateSalesPaymentStatus(billNo, is_check);
+    if (success) {
+      res.json({ code: 0, msg: '收款状态更新成功' });
+    } else {
+      res.status(404).json({ code: 1, msg: '销售记录不存在' });
+    }
+  } catch (err) {
+    console.error('更新销售收款状态失败:', err);
+    res.status(500).json({ code: 1, msg: '更新销售收款状态失败', error: err.message });
+  }
+});
+
+// 根据卡号查询销售记录
+app.get('/api/sales-weight-by-card/:cardNo', async (req, res) => {
+  try {
+    const { cardNo } = req.params;
+    const { is_archived = 0 } = req.query;
+    console.log('收到销售记录卡号查询请求:', cardNo, '归档状态:', is_archived);
+    
+    const records = await getSalesRecordsByCardNo(cardNo, parseInt(is_archived));
+    res.json({ code: 0, msg: '查询成功', data: records });
+  } catch (err) {
+    console.error('根据卡号查询销售记录失败:', err);
+    res.status(500).json({ code: 1, msg: '根据卡号查询销售记录失败', error: err.message });
+  }
+});
+
+// 获取销售统计信息
+app.get('/api/sales-statistics', async (req, res) => {
+  try {
+    const statistics = await getSalesStatistics();
+    res.json({ code: 0, msg: '查询成功', data: statistics });
+  } catch (err) {
+    console.error('查询销售统计失败:', err);
+    res.status(500).json({ code: 1, msg: '查询销售统计失败', error: err.message });
+  }
+});
+
+// 获取销售图表数据
+app.get('/api/sales-chart-data', async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const chartData = await getSalesChartData(parseInt(days));
+    res.json({ code: 0, msg: '查询成功', data: chartData });
+  } catch (err) {
+    console.error('查询销售图表数据失败:', err);
+    res.status(500).json({ code: 1, msg: '查询销售图表数据失败', error: err.message });
   }
 });
 
