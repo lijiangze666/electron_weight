@@ -129,9 +129,16 @@ export default function PurchaseQuickWeight() {
       const cleanedData = data.replace(/[\x02\x03]/g, '');
       console.log("清理后的数据:", JSON.stringify(cleanedData));
       
-      // 地磅数据格式: +012906017 (9位数字)
-      // 使用更宽松的正则表达式匹配完整的重量数据
-      const scaleMatch = cleanedData.match(/([+-])(\d{9})(?![0-9])/);
+      // 地磅数据格式处理：支持多种格式
+      // 1. 9位数字格式: +012906017
+      // 2. 8位+字母格式: +00002401D  
+      // 3. 直接数字格式: +3730, +130, +1630
+      
+      let actualWeight = null;
+      let scaleMatch = null;
+      
+      // 首先尝试匹配9位数字格式
+      scaleMatch = cleanedData.match(/([+-])(\d{9})(?![0-9])/);
       console.log("9位数字格式匹配结果:", scaleMatch);
       
       if (scaleMatch) {
@@ -140,40 +147,25 @@ export default function PurchaseQuickWeight() {
         
         console.log("符号:", sign, "重量字符串:", weightStr);
         
-        // 将9位数字转换为实际重量
-        const rawWeight = parseInt(weightStr, 10);
-        console.log("原始重量数值:", rawWeight);
+        // 去掉前导0，直接使用数值
+        const withoutLeadingZero = weightStr.replace(/^0+/, '');
+        actualWeight = parseInt(withoutLeadingZero, 10);
         
-         // 根据用户反馈，数据应该直接显示，不需要转换
-         // 3730 应该显示为 3730，130 应该显示为 130，1630 应该显示为 1630
-         
-         let actualWeight;
-         
-         console.log("🔍 开始分析9位数字:", weightStr, "原始数值:", rawWeight);
-         
-         // 去掉前导0，直接使用数值
-         const withoutLeadingZero = weightStr.replace(/^0+/, '');
-         actualWeight = parseInt(withoutLeadingZero, 10);
-         
-         // 如果去掉前导0后为空，说明全是0
-         if (withoutLeadingZero === '') {
-           actualWeight = 0;
-         }
-         
-         console.log("去掉前导0后的字符串:", withoutLeadingZero);
-         console.log("🎯 直接使用的重量:", actualWeight);
+        // 如果去掉前导0后为空，说明全是0
+        if (withoutLeadingZero === '') {
+          actualWeight = 0;
+        }
+        
+        console.log("去掉前导0后的字符串:", withoutLeadingZero);
+        console.log("🎯 9位格式计算的重量:", actualWeight);
         
         // 如果是负数，添加负号
         if (sign === '-') {
           actualWeight = -actualWeight;
         }
         
-        console.log("计算后的实际重量:", actualWeight);
-        setSerialData(`${actualWeight}`);
-        setIsStable(true);
-        
       } else {
-        // 如果不匹配9位格式，尝试8位+字母格式
+        // 尝试8位+字母格式
         const legacyMatch = cleanedData.match(/([+-])(\d{8})([A-Z])/);
         console.log("8位+字母格式匹配结果:", legacyMatch);
         
@@ -182,7 +174,6 @@ export default function PurchaseQuickWeight() {
           const weightStr = legacyMatch[2];
           const rawWeight = parseInt(weightStr, 10);
           
-          let actualWeight;
           if (rawWeight < 100000) {
             actualWeight = Math.round(rawWeight / 100);
           } else {
@@ -194,24 +185,26 @@ export default function PurchaseQuickWeight() {
           }
           
           console.log("8位格式计算后的实际重量:", actualWeight);
-          setSerialData(`${actualWeight}`);
-          setIsStable(true);
           
         } else {
-          // 最后尝试简单的数字匹配
-          const simpleMatch = cleanedData.match(/[+-]?\d+/);
+          // 最后尝试简单的数字匹配（直接数字格式）
+          const simpleMatch = cleanedData.match(/([+-]?\d+)/);
           console.log("简单数字匹配结果:", simpleMatch);
           
           if (simpleMatch) {
-            const weight = parseInt(simpleMatch[0], 10);
-            console.log("简单匹配的重量:", weight);
-            setSerialData(`${weight}`);
-            setIsStable(true);
-          } else {
-            console.log("数据格式不匹配，设置为不稳定");
-            setIsStable(false);
+            actualWeight = parseInt(simpleMatch[0], 10);
+            console.log("直接数字格式的重量:", actualWeight);
           }
         }
+      }
+      
+      if (actualWeight !== null) {
+        console.log("最终计算的重量:", actualWeight);
+        setSerialData(`${actualWeight}`);
+        setIsStable(true);
+      } else {
+        console.log("数据格式不匹配，设置为不稳定");
+        setIsStable(false);
       }
     };
     ipcRenderer.on("serialport-data", handler);
