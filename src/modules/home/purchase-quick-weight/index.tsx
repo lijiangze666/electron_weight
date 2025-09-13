@@ -172,19 +172,21 @@ export default function PurchaseQuickWeight() {
         if (legacyMatch) {
           const sign = legacyMatch[1];
           const weightStr = legacyMatch[2];
-          const rawWeight = parseInt(weightStr, 10);
           
-          if (rawWeight < 100000) {
-            actualWeight = Math.round(rawWeight / 100);
-          } else {
-            actualWeight = Math.round(rawWeight / 1000);
+          // 去掉前导0，直接使用数值，不进行除法运算
+          const withoutLeadingZero = weightStr.replace(/^0+/, '');
+          actualWeight = parseInt(withoutLeadingZero, 10);
+          
+          // 如果去掉前导0后为空，说明全是0
+          if (withoutLeadingZero === '') {
+            actualWeight = 0;
           }
           
           if (sign === '-') {
             actualWeight = -actualWeight;
           }
           
-          console.log("8位格式计算后的实际重量:", actualWeight);
+          console.log("8位格式计算的重量:", actualWeight);
           
         } else {
           // 最后尝试简单的数字匹配（直接数字格式）
