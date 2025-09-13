@@ -132,18 +132,17 @@ export default function PurchaseQuickWeight() {
       // 地磅数据格式处理：支持多种格式
       // 1. 9位数字格式: +012906017
       // 2. 8位+字母格式: +00002401D  
-      // 3. 直接数字格式: +3730, +130, +1630
+      // 3. 直接数字格式: +3730, +130, +1630, +172
       
       let actualWeight = null;
-      let scaleMatch = null;
       
-      // 首先尝试匹配9位数字格式
-      scaleMatch = cleanedData.match(/([+-])(\d{9})(?![0-9])/);
-      console.log("9位数字格式匹配结果:", scaleMatch);
+      // 首先尝试匹配9位数字格式（必须是完整的9位数字）
+      const nineDigitMatch = cleanedData.match(/^([+-])(\d{9})$/);
+      console.log("9位数字格式匹配结果:", nineDigitMatch);
       
-      if (scaleMatch) {
-        const sign = scaleMatch[1]; // + 或 -
-        const weightStr = scaleMatch[2]; // 9位数字
+      if (nineDigitMatch) {
+        const sign = nineDigitMatch[1]; // + 或 -
+        const weightStr = nineDigitMatch[2]; // 9位数字
         
         console.log("符号:", sign, "重量字符串:", weightStr);
         
@@ -166,7 +165,7 @@ export default function PurchaseQuickWeight() {
         
       } else {
         // 尝试8位+字母格式
-        const legacyMatch = cleanedData.match(/([+-])(\d{8})([A-Z])/);
+        const legacyMatch = cleanedData.match(/^([+-])(\d{8})([A-Z])$/);
         console.log("8位+字母格式匹配结果:", legacyMatch);
         
         if (legacyMatch) {
@@ -190,7 +189,7 @@ export default function PurchaseQuickWeight() {
           
         } else {
           // 最后尝试简单的数字匹配（直接数字格式）
-          const simpleMatch = cleanedData.match(/([+-]?\d+)/);
+          const simpleMatch = cleanedData.match(/^([+-]?\d+)$/);
           console.log("简单数字匹配结果:", simpleMatch);
           
           if (simpleMatch) {
