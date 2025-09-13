@@ -133,6 +133,7 @@ export default function PurchaseQuickWeight() {
       // 1. 9位数字格式: +012906017
       // 2. 8位+字母格式: +00002401D  
       // 3. 直接数字格式: +3730, +130, +1630, +172
+      // 4. 特殊格式: +000012018 (应该显示为12)
       
       let actualWeight = null;
       
@@ -146,17 +147,26 @@ export default function PurchaseQuickWeight() {
         
         console.log("符号:", sign, "重量字符串:", weightStr);
         
-        // 去掉前导0，直接使用数值
-        const withoutLeadingZero = weightStr.replace(/^0+/, '');
-        actualWeight = parseInt(withoutLeadingZero, 10);
-        
-        // 如果去掉前导0后为空，说明全是0
-        if (withoutLeadingZero === '') {
-          actualWeight = 0;
+        // 特殊处理：如果前5位都是0，说明这是特殊格式，需要特殊处理
+        if (weightStr.startsWith('00000')) {
+          // 格式如 +000012018，应该显示为12
+          const actualDigits = weightStr.substring(5); // 取后4位
+          actualWeight = parseInt(actualDigits, 10);
+          console.log("特殊格式处理，后4位:", actualDigits, "实际重量:", actualWeight);
+        } else {
+          // 标准9位格式处理
+          // 去掉前导0，直接使用数值
+          const withoutLeadingZero = weightStr.replace(/^0+/, '');
+          actualWeight = parseInt(withoutLeadingZero, 10);
+          
+          // 如果去掉前导0后为空，说明全是0
+          if (withoutLeadingZero === '') {
+            actualWeight = 0;
+          }
+          
+          console.log("去掉前导0后的字符串:", withoutLeadingZero);
+          console.log("🎯 9位格式计算的重量:", actualWeight);
         }
-        
-        console.log("去掉前导0后的字符串:", withoutLeadingZero);
-        console.log("🎯 9位格式计算的重量:", actualWeight);
         
         // 如果是负数，添加负号
         if (sign === '-') {
